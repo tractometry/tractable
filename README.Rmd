@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 
 <!--insert CRAN status badge -->
 
-[![R-CMD-check](https://github.com/richford/tractable/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/richford/tractable/actions/workflows/R-CMD-check.yaml) [![Codecov test coverage](https://codecov.io/gh/richford/tractable/branch/main/graph/badge.svg)](https://app.codecov.io/gh/richford/tractable?branch=main)
+[![R-CMD-check](https://github.com/yeatmanlab/tractable/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/yeatmanlab/tractable/actions/workflows/R-CMD-check.yaml) [![Codecov test coverage](https://codecov.io/gh/yeatmanlab/tractable/branch/main/graph/badge.svg)](https://app.codecov.io/gh/yeatmanlab/tractable?branch=main)
 
 <!-- badges: end -->
 
@@ -33,7 +33,7 @@ You can install the development version of tractable from [GitHub](https://githu
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("richford/tractable")
+devtools::install_github("yeatmanlab/tractable")
 ```
 
 ## Example

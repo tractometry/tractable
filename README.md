@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# tractable <img src="man/figures/tractable-logo.svg" align="right" height="139"/>
+# tractable <img src="man/figures/tractable_logo.png" align="right" height="139"/>
 
 <!-- badges: start -->
 <!--insert CRAN status badge -->
@@ -14,10 +14,10 @@ coverage](https://codecov.io/gh/yeatmanlab/tractable/branch/main/graph/badge.svg
 
 ## Overview
 
-tractable contains functions to analyze diffusion MRI (dMRI) tract profiles
-using generalized additive models. It operates on outputs from the AFQ
-software ecosystem and tests for differences between two phenotypic
-groups along the length of a specified white matter tract.
+tractable contains functions to analyze diffusion MRI (dMRI) tract
+profiles using generalized additive models. It operates on outputs from
+the AFQ software ecosystem and tests for differences between two
+phenotypic groups along the length of a specified white matter tract.
 
 ## Installation
 
@@ -40,7 +40,7 @@ library(tractable)
 
 ## Code of Conduct
 
-Please note that the tractable project is released with a [Contributor Code
-of
+Please note that the tractable project is released with a [Contributor
+Code of
 Conduct](https://contributor-covenant.org/version/2/1/CODE_OF_CONDUCT.html).
 By contributing to this project, you agree to abide by its terms.

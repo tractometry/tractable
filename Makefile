@@ -9,6 +9,7 @@ test:
 
 docs:
 	Rscript -e "devtools::document()"
+	Rscript -e "devtools::build_readme()"
 
 examples:
 	Rscript -e "devtools::build_rmd('vignettes/tractable-single-bundle.Rmd')"
