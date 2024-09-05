@@ -52,7 +52,7 @@ Imports:
     RColorBrewer,
     stringr,
     tidyr,
-    tidyselect
+    tidyselect,
     latex2exp
 Suggests:
     covr,
