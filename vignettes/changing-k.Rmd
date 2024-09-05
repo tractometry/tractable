@@ -74,7 +74,7 @@ sm <- smooth_estimates(models[[ii]]) %>%
 
 plots[[ii]] <- sm %>%
       ggplot() +
-      geom_ribbon(aes(group=group, ymin = lowerci_, ymax = upperci_, x = nodeID),
+      geom_ribbon(aes(group=group, ymin = lower_ci, ymax = upper_ci, x = nodeID),
                   alpha = 0.2) +
       geom_line(aes(group=group, color=group, x = nodeID, y = est))+
   labs(y = "FA", title = sprintf("k=%d", k_values[ii]))
