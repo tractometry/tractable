@@ -1,5 +1,7 @@
 # Use colorblind-friendly palette from http://jfly.iam.u-tokyo.ac.jp/color/
 # The palette with grey:
+library(latex2exp)
+
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
@@ -41,12 +43,12 @@ tract_name <- function(tract) {
     "ILF_L" = "LeftILF",
     "SLF_R" = "RightSLF",
     "SLF_L" = "LeftSLF",
-    tract
+    "SCP_L" = "Left SCP",
+    "SCP_R" = "Right SCP",
   )
 
   return(name)
 }
-
 
 #' Plot GAM splines for each group
 #'
@@ -280,6 +282,18 @@ spline_diff <- function(gam_model,
 }
 
 
+metric_name <- function(metric) {
+  name <- switch(
+    metric,
+    "dti_fa" = "Fractional Anisotropy (FA)",
+    "dti_md" = latex2exp::TeX(
+        "Mean diffusivity ($\\mu m^2 / ms$)"),
+  )
+
+  return(name)
+}
+
+
 #' Plot tract profiles for each bundle as a facet and each metric as a figure.
 #'
 #' @param df Data frame.
@@ -329,7 +343,7 @@ spline_diff <- function(gam_model,
 #'   figsize   = c(8, 6)
 #')
 #'}
-plot_tract_profiles <- function (
+plot_tract_profiles <- function(
     df,
     metrics      = NULL,
     bundles      = NULL,
@@ -348,7 +362,9 @@ plot_tract_profiles <- function (
   # argument preparation
   if (is.null(metrics)) {
     metrics <- names(df) # extract all column names from given data frame
-    indx <- sapply(metrics, function(x) any(startsWith(x, c("csd", "dki", "dti", "fwdti"))))
+    indx <- sapply(
+      metrics,
+      function(x) any(startsWith(x, c("csd", "dki", "dti", "fwdti"))))
     metrics <- metrics[indx]
   }
 
@@ -371,9 +387,12 @@ plot_tract_profiles <- function (
 
   # prepare data.frame for plotting
   plot_df <- df %>%
-    tidyr::pivot_longer(cols = tidyselect::all_of(metrics), names_to = "metric") %>%
-    dplyr::rename(tracts = tidyselect::all_of(bundles_col)) %>%
-    dplyr::filter(tracts %in% bundles, metric %in% metrics)
+    tidyr::pivot_longer(
+      cols = tidyselect::all_of(metrics), names_to = "metric") %>%
+      dplyr::rename(tracts = tidyselect::all_of(bundles_col)) %>%
+      dplyr::filter(tracts %in% bundles, metric %in% metrics)
+
+  plot_df$tracts <- sapply(plot_df$tracts, tract_name)
 
   # factorized grouping variable, split into groups if numeric
   if (is.numeric(plot_df[[group_col]])) {
@@ -386,7 +405,7 @@ plot_tract_profiles <- function (
   if (pal_name == "colorblind") {
     color_palette <- cbPalette
   } else if (pal_name == "colorblindblack") {
-    color_palette = cbbPalette
+    color_palette <- cbbPalette
   } else {
     n <- RColorBrewer::brewer.pal.info[pal_name, "maxcolors"]
     color_palette <- RColorBrewer::brewer.pal(n, pal_name)
@@ -397,27 +416,37 @@ plot_tract_profiles <- function (
     # create current metric figure handle
     plot_handle <- plot_df %>%
       dplyr::filter(metric == curr_metric) %>%
-      ggplot2::ggplot(ggplot2::aes(x = nodeID, y = value, group = .data[[group_col]],
-                          color = .data[[group_col]], fill = .data[[group_col]])) +
+      ggplot2::ggplot(ggplot2::aes(
+        x = nodeID, y = value, group = .data[[group_col]],
+        color = .data[[group_col]], fill = .data[[group_col]])) +
       ggplot2::stat_summary(
-        color = NA, geom = "ribbon", fun.data = ribbon_func, alpha = ribbon_alpha) +
+        color = NA,
+        geom = "ribbon",
+        fun.data = ribbon_func,
+        alpha = ribbon_alpha) +
       ggplot2::stat_summary(
         geom = "line", fun = line_func, linewidth = linewidth) +
-      ggplot2::scale_x_continuous(name = "") +
-      ggplot2::scale_y_continuous(name = curr_metric) +
+      ggplot2::scale_x_continuous(
+        name = "Length along the bundle \n (inferior → superior)") +
+      ggplot2::labs(y = metric_name(curr_metric)) +
       ggplot2::scale_color_manual(values = color_palette) +
       ggplot2::scale_fill_manual(values = color_palette) +
       ggplot2::facet_wrap(~ tracts) +
-      ggplot2::theme_bw()
+      ggplot2::theme_bw() +
+      ggplot2::theme(
+        axis.line = ggplot2::element_line(colour = "black"),
+        panel.background = ggplot2::element_blank(),
+        text = ggplot2::element_text(size = 30, family = "Helvetica"),
+        legend.position = c(.87, .8))
 
     # remove legend if no group
     # if (group_col == "_group") {
     #   plot_handle <- plot_handle + ggplot::theme(legend.position = "none")
     # }
-
     # save tract profile figure
-    plot_fname <- paste0("tract-profile_by-", group_col, "_",
-                         stringr::str_replace_all(curr_metric, "_", "-"), ".png")
+    plot_fname <- paste0(
+      "tract-profile_by-", group_col, "_",
+      stringr::str_replace_all(curr_metric, "_", "-"), ".png")
     ggplot2::ggsave(
       filename = file.path(out_dir, plot_fname),
       plot     = plot_handle,

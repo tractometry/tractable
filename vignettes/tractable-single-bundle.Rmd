@@ -3,8 +3,8 @@ title: "Fitting Generalized Additive Models (GAMs)"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Fitting Generalized Additive Models (GAMs)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding[UTF-8]{inputenc}
 bibliography: references.bib
 ---
 

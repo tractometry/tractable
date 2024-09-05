@@ -2,6 +2,8 @@ install:
 	R CMD INSTALL .
 
 check:
+	Rscript -e "devtools::build_vignettes()"
+	Rscript -e "pkgdown::build_site()"
 	R CMD check .
 
 test:
