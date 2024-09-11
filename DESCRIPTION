@@ -53,7 +53,8 @@ Imports:
     stringr,
     tidyr,
     tidyselect,
-    latex2exp
+    latex2exp,
+    markdown
 Suggests:
     covr,
     knitr,

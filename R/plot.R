@@ -45,6 +45,7 @@ tract_name <- function(tract) {
     "SLF_L" = "LeftSLF",
     "SCP_L" = "Left SCP",
     "SCP_R" = "Right SCP",
+    tract
   )
 
   return(name)
@@ -141,16 +142,16 @@ plot_gam_splines <- function(
     values = cbbPalette,
   )
 
-  plot_filename <- file.path(out_dir,
-                             paste0("plot_gam_", sub(" ", "_", tract), ".png"))
+  # plot_filename <- file.path(out_dir,
+  #                            paste0("plot_gam_", sub(" ", "_", tract), ".png"))
 
-  ggplot2::ggsave(
-    plot_filename,
-    units = "in",
-    width = 6,
-    height = 6,
-    device = "png"
-  )
+  # ggplot2::ggsave(
+  #   plot_filename,
+  #   units = "in",
+  #   width = 6,
+  #   height = 6,
+  #   device = "png"
+  # )
 }
 
 #' Calculate and plot difference between two splines
@@ -286,8 +287,12 @@ metric_name <- function(metric) {
   name <- switch(
     metric,
     "dti_fa" = "Fractional Anisotropy (FA)",
+    "fa" = "Fractional Anisotropy (FA)",
     "dti_md" = latex2exp::TeX(
         "Mean diffusivity ($\\mu m^2 / ms$)"),
+    "md" = latex2exp::TeX(
+      "Mean diffusivity ($\\mu m^2 / ms$)"),
+    metric
   )
 
   return(name)
@@ -346,8 +351,8 @@ metric_name <- function(metric) {
 plot_tract_profiles <- function(
     df,
     metrics      = NULL,
-    bundles      = NULL,
-    bundles_col  = "tractID",
+    tracts      = NULL,
+    tracts_col  = "tractID",
     group_col    = NULL,
     line_func    = "mean",
     linewidth    = 1,
@@ -368,8 +373,8 @@ plot_tract_profiles <- function(
     metrics <- metrics[indx]
   }
 
-  if (is.null(bundles)) {
-    bundles <- unique(df[[bundles_col]])
+  if (is.null(tracts)) {
+    tracts <- unique(df[[tracts_col]])
   }
 
   if (is.null(group_col)) {
@@ -389,10 +394,10 @@ plot_tract_profiles <- function(
   plot_df <- df %>%
     tidyr::pivot_longer(
       cols = tidyselect::all_of(metrics), names_to = "metric") %>%
-      dplyr::rename(tracts = tidyselect::all_of(bundles_col)) %>%
-      dplyr::filter(tracts %in% bundles, metric %in% metrics)
+      dplyr::rename(tracts = tidyselect::all_of(tracts_col)) %>%
+      dplyr::filter(tracts %in% tracts, metric %in% metrics)
 
-  plot_df$tracts <- sapply(plot_df$tracts, tract_name)
+  plot_df$tracts <- lapply(plot_df$tracts, tract_name)
 
   # factorized grouping variable, split into groups if numeric
   if (is.numeric(plot_df[[group_col]])) {
@@ -440,13 +445,16 @@ plot_tract_profiles <- function(
         legend.position = c(.87, .8))
 
     # remove legend if no group
-    # if (group_col == "_group") {
-    #   plot_handle <- plot_handle + ggplot::theme(legend.position = "none")
-    # }
+    if (group_col == "_group") {
+      plot_handle <- plot_handle + ggplot::theme(legend.position = "none")
+    }
+
     # save tract profile figure
     plot_fname <- paste0(
       "tract-profile_by-", group_col, "_",
       stringr::str_replace_all(curr_metric, "_", "-"), ".png")
+
+    browser()
     ggplot2::ggsave(
       filename = file.path(out_dir, plot_fname),
       plot     = plot_handle,
