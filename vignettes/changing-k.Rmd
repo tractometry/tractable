@@ -8,7 +8,7 @@ vignette: >
 bibliography: references.bib
 ---
 
-```{r, include = FALSE}
+```{r knitr, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -27,6 +27,7 @@ which we will use to interpret the fitted model.
 library(tractable)
 library(gratia)
 library(ggplot2)
+library(dplyr)
 ```
 
 Next, we will use a function that is included in `tractable` to read this dataset
@@ -34,7 +35,7 @@ directly into memory. Importantly, both the group ("ALS" or "CTRL") and the
 subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
-```{r}
+```{r read-data}
 sarica <- tractable::read.afq.sarica()
 sarica$group <- factor(sarica$class)
 sarica$subjectID <- unclass(factor(sarica$subjectID))
@@ -43,7 +44,7 @@ sarica$subjectID <- unclass(factor(sarica$subjectID))
 We fit models with different levels of flexibility, encoded in different values
 of `k`:
 
-```{r}
+```{r calculate-models}
 
 k_values = c(4, 8, 16, 32)
 
@@ -63,19 +64,21 @@ for (ii in seq_along(k_values)){
 
 And we plot the smooths, divided by group for each one of these levels:
 
-```{r}
+```{r plot}
 
 plots =list()
 
 for (ii in seq_along(k_values)){
 
 sm <- smooth_estimates(models[[ii]]) %>%
-  gratia::add_confint()
+  gratia::add_confint() %>% filter(!is.na(group))
 
 plots[[ii]] <- sm %>%
       ggplot() +
       geom_line(aes(group=group, color=group, x = nodeID, y = est))+
-  labs(y = "FA", title = sprintf("k=%d", k_values[ii]))
+      geom_ribbon(aes(group=group, ymin = lower_ci, ymax = upper_ci, x = nodeID),
+                   alpha = 0.2) +
+      labs(y = "FA", title = sprintf("k=%d", k_values[ii]))
 
 }
 
@@ -83,3 +86,4 @@ plots
 ```
 
 ## References
+

@@ -8,7 +8,7 @@ vignette: >
 bibliography: references.bib
 ---
 
-```{r, include = FALSE}
+```{r knitr, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -31,7 +31,7 @@ directly into memory. Importantly, both the group ("ALS" or "CTRL") and the
 subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
-```{r}
+```{r load-data}
 sarica <- tractable::read.afq.sarica()
 sarica$group <- factor(sarica$class)
 sarica$subjectID <- unclass(factor(sarica$subjectID))
@@ -43,7 +43,7 @@ in two tracts: the right corticospinal tract (CST) and the right superior
 longitudinal fasciculus (SLF), which are identified in the "tractID" column of
 this dataset.
 
-```{r}
+```{r plot}
 tractable::plot_tract_profiles(sarica,
                             group_col = "group",
                             n_groups = 2,
@@ -65,7 +65,7 @@ use a parameter `k` to determine how many spline functions to use in fitting
 the smooth change of FA over the length of the tract. We use an automated
 strategy to find `k`.
 
-```{r}
+```{r fit-model-cst}
 gam_fit_cst <- tractable_single_bundle(df_afq = sarica,
                                     tract = "Right Corticospinal",
                                     participant_id = "subjectID",
@@ -81,7 +81,7 @@ In addition, we see that there is a statistically significant effect of group
 (with a p-value of 4.66e-10) and no statistically significant effect of age
 (p=0.2748).
 
-```{r}
+```{r summary}
 summary(gam_fit_cst)
 ```
 
@@ -89,7 +89,7 @@ Running the same analysis on the data from SLF, we see that there is no
 significant difference between the groups in this bundle, indicating that the
 effect observed in CST is rather specific to this bundle.
 
-```{r}
+```{r fit-model-slf}
 gam_fit_slf <- tractable_single_bundle(df_afq = sarica,
                                        tract = "Right SLF",
                                        participant_id = "subjectID",
