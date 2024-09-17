@@ -52,7 +52,9 @@ Imports:
     RColorBrewer,
     stringr,
     tidyr,
-    tidyselect
+    tidyselect,
+    latex2exp,
+    markdown
 Suggests:
     covr,
     knitr,

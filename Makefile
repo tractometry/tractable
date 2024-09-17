@@ -1,7 +1,13 @@
 install:
 	R CMD INSTALL .
 
+reinstall:
+	R CMD REMOVE tractable
+	R CMD INSTALL .
+
 check:
+	Rscript -e "devtools::build_vignettes()"
+	Rscript -e "pkgdown::build_site()"
 	R CMD check .
 
 test:
