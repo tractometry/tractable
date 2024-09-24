@@ -6,8 +6,8 @@
 #' @export
 #'
 #' @examples
-#' parse.s3.uri("s3://bucket-name/a/path/to/an/object.txt")
-parse.s3.uri <- function(uri) {
+#' parse_s3_uri("s3://bucket-name/a/path/to/an/object.txt")
+parse_s3_uri <- function(uri) {
   s3_uri_regex <- stringr::regex("
     ^s3://  # initial S3 prefix
     (?<bucket>(?!(xn--|-s3alias$))[a-z0-9][a-z0-9-]{1,61}[a-z0-9]) # bucket name
@@ -27,8 +27,8 @@ parse.s3.uri <- function(uri) {
 #' @param nodes_csv path to a nodes file
 #' @param pheno_csv path to a phenotypic file, leave NULL to return an "unsupervised" AFQ dataset
 #' @param index specification of the column used for merging
-#' @param index.nodes specification of the column used for merging
-#' @param index.pheno specification of the column used for merging
+#' @param index_nodes specification of the column used for merging
+#' @param index_pheno specification of the column used for merging
 #' @param dwi_metrics which diffusion metrics should be retained
 #' @param factor_cols which columns should be treated as factors
 #' @param pheno_cols which columns to include from pheno file
@@ -38,14 +38,17 @@ parse.s3.uri <- function(uri) {
 #'
 #' @examples
 #' \dontrun{
-#'   df_afq <- read.afq.files(nodes_csv = "a/path/to/nodes.csv",
+#'   df_afq <- read_afq_files(nodes_csv = "a/path/to/nodes.csv",
 #'                            pheno_csv = "a/path/to/pheno.csv")
 #' }
-read.afq.files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", index.nodes = index, index.pheno = index, dwi_metrics = NULL, factor_cols = NULL, pheno_cols = NULL, ...) {
+read_afq_files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", 
+                           index_nodes = index, index_pheno = index, 
+                           dwi_metrics = NULL, factor_cols = NULL, 
+                           pheno_cols = NULL,  ...) {
   if (grepl("^s3://", nodes_csv)) {
     # Read from S3
-    uri <- parse.s3.uri(nodes_csv)
-    nodes_df <- aws.s3::s3read_using(FUN=utils::read.csv,
+    uri <- parse_s3_uri(nodes_csv)
+    nodes_df <- aws.s3::s3read_using(FUN = utils::read.csv,
                                      bucket = uri[["bucket"]],
                                      object = uri[["object"]],
                                      ... = ...)
@@ -56,7 +59,7 @@ read.afq.files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", ind
 
   # Select only the user's desired DWI metrics
   if (!is.null(dwi_metrics)) {
-    node_cols <- unique(c(index.nodes,
+    node_cols <- unique(c(index_nodes,
                           "siteID",
                           "tractID",
                           "nodeID",
@@ -65,10 +68,10 @@ read.afq.files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", ind
   }
 
   # Add "sub-" prefix to participant IDs if not already there
-  nodes_df[[index.nodes]] <- trimws(as.character(nodes_df[[index.nodes]]))
-  nodes_df[[index.nodes]] <- ifelse(grepl("^sub-", nodes_df[[index.nodes]]),
-                                    nodes_df[[index.nodes]],
-                                    paste0("sub-", nodes_df[[index.nodes]]))
+  nodes_df[[index_nodes]] <- trimws(as.character(nodes_df[[index_nodes]]))
+  nodes_df[[index_nodes]] <- ifelse(grepl("^sub-", nodes_df[[index_nodes]]),
+                                    nodes_df[[index_nodes]],
+                                    paste0("sub-", nodes_df[[index_nodes]]))
 
   if (!is.null(pheno_csv)) {
     # Treat some pheno columns as factors
@@ -88,8 +91,8 @@ read.afq.files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", ind
 
     if (grepl("^s3://", pheno_csv)) {
       # Read from S3
-      uri <- parse.s3.uri(pheno_csv)
-      pheno_df <- aws.s3::s3read_using(FUN=utils::read.csv,
+      uri <- parse_s3_uri(pheno_csv)
+      pheno_df <- aws.s3::s3read_using(FUN = utils::read.csv,
                                       bucket = uri[["bucket"]],
                                       object = uri[["object"]],
                                       sep = sep,
@@ -98,28 +101,29 @@ read.afq.files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", ind
       # Read from local or URL
       pheno_df <- utils::read.csv(pheno_csv,
                           check.names = FALSE,
-                          colClasses=colClasses,
+                          colClasses = colClasses,
                           sep = sep,
                           ... = ...)
     }
 
     # Select only the user supplied pheno columns
     if (!is.null(pheno_cols)) {
-      pheno_df <- dplyr::select(pheno_df, unique(c(index.pheno, pheno_cols)))
+      pheno_df <- dplyr::select(pheno_df, unique(c(index_pheno, pheno_cols)))
     }
 
     # Add "sub-" prefix to participant IDs if not already there
-    pheno_df[[index.pheno]] <- trimws(as.character(pheno_df[[index.pheno]]))
-    pheno_df[[index.pheno]] <- ifelse(grepl("^sub-", pheno_df[[index.pheno]]),
-                                      pheno_df[[index.pheno]],
-                                      paste0("sub-", pheno_df[[index.pheno]]))
+    pheno_df[[index_pheno]] <- trimws(as.character(pheno_df[[index_pheno]]))
+    pheno_df[[index_pheno]] <- ifelse(grepl("^sub-", pheno_df[[index_pheno]]),
+                                      pheno_df[[index_pheno]],
+                                      paste0("sub-", pheno_df[[index_pheno]]))
 
     # Merge pheno is provided
-    merged_df <- merge(nodes_df, pheno_df, by.x = index.nodes, by.y = index.pheno, incomparables = NA)
+    merged_df <- merge(nodes_df, pheno_df, by.x = index_nodes, 
+                       by.y = index_pheno, incomparables = NA)
     return(merged_df)
   }
 
-  # If we get here, then we are in the unsupervised case so return just the nodes_df.
+  # If we get here, then we are in the unsupervised case, return just the nodes_df.
   return(nodes_df)
 }
 
@@ -131,15 +135,15 @@ read.afq.files <- function(nodes_csv, pheno_csv = NULL, index = "subjectID", ind
 #' @export
 #'
 #' @examples
-#' df_sarica <- read.afq.sarica()
-read.afq.sarica <- function(...) {
-  url.nodes <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/nodes.csv"
-  url.pheno <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/subjects.csv"
-  df <- read.afq.files(nodes_csv = url.nodes,
-                       pheno_csv = url.pheno,
+#' df_sarica <- read_afq_sarica()
+read_afq_sarica  <- function(...) {
+  nodes_url <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/nodes.csv"
+  pheno_url <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/subjects.csv"
+  df <- read_afq_files(nodes_csv   = nodes_url,
+                       pheno_csv   = pheno_url,
                        dwi_metrics = c("fa", "md"),
                        factor_cols = c("class", "gender"),
-                       pheno_cols = c("age", "class", "gender"),
+                       pheno_cols  = c("age", "class", "gender"),
                        ... = ...)
   return(df)
 }
@@ -152,15 +156,15 @@ read.afq.sarica <- function(...) {
 #' @export
 #'
 #' @examples
-#' df_weston_havens <- read.afq.weston.havens()
-read.afq.weston.havens <- function(...) {
-  url.nodes <- "https://yeatmanlab.github.io/AFQBrowser-demo/data/nodes.csv"
-  url.pheno <- "https://yeatmanlab.github.io/AFQBrowser-demo/data/subjects.csv"
-  df <- read.afq.files(nodes_csv = url.nodes,
-                       pheno_csv = url.pheno,
+#' df_weston_havens <- read_afq_weston_havens()
+read_afq_weston_havens <- function(...) {
+  nodes_url <- "https://yeatmanlab.github.io/AFQBrowser-demo/data/nodes.csv"
+  pheno_url <- "https://yeatmanlab.github.io/AFQBrowser-demo/data/subjects.csv"
+  df <- read_afq_files(nodes_csv   = nodes_url,
+                       pheno_csv   = pheno_url,
                        dwi_metrics = c("fa", "md"),
                        factor_cols = c("Gender"),
-                       pheno_cols = c("Age", "Gender", "IQ"),
+                       pheno_cols  = c("Age", "Gender", "IQ"),
                        ... = ...)
   return(df)
 }
@@ -175,23 +179,23 @@ read.afq.weston.havens <- function(...) {
 #'
 #' @examples
 #' \dontrun{
-#'   df_hbn <- read.afq.hbn()
+#'   df_hbn <- read_afq_hbn()
 #' }
-read.afq.hbn <- function(truncate = FALSE, ...) {
+read_afq_hbn <- function(truncate = FALSE, ...) {
   if (truncate) {
-    url.nodes <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/.truncated_tract_profiles.csv"
-    url.pheno <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/.truncated_participants.tsv"
+    nodes_url <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/.truncated_tract_profiles.csv"
+    pheno_url <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/.truncated_participants.tsv"
   } else { # nocov start
-    url.nodes <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/combined_tract_profiles.csv"
-    url.pheno <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/qsiprep/participants.tsv"
+    nodes_url <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/combined_tract_profiles.csv"
+    pheno_url <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/qsiprep/participants.tsv"
   } # nocov end
 
-  df <- read.afq.files(nodes_csv = url.nodes,
-                       pheno_csv = url.pheno,
-                       index.pheno = "subject_id",
+  df <- read_afq_files(nodes_csv   = nodes_url,
+                       pheno_csv   = pheno_url,
+                       index_pheno = "subject_id",
                        dwi_metrics = c("dki_fa", "dki_md"),
                        factor_cols = c("sex"),
-                       pheno_cols = c("age", "sex"),
+                       pheno_cols  = c("age", "sex"),
                        ... = ...)
   return(df)
 }
