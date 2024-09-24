@@ -32,7 +32,7 @@ subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
 ```{r}
-sarica <- tractable::read.afq.sarica()
+sarica <- tractable::read_afq_sarica()
 sarica$group <- factor(sarica$class)
 sarica$subjectID <- unclass(factor(sarica$subjectID))
 ```
@@ -44,14 +44,14 @@ longitudinal fasciculus (SLF), which are identified in the "tractID" column of
 this dataset.
 
 ```{r}
-tractable::plot_tract_profiles(sarica,
-                            group_col = "group",
-                            n_groups = 2,
-                            metrics = c("fa", "md"),
-                            bundles = list("Right Corticospinal",
-                                           "Right SLF"),
-                            bundles_col  = "tractID")
-
+tractable::plot_tract_profiles(
+  df_afq      = sarica,
+  group_col   = "group",
+  n_groups    = 2,
+  metrics     = c("fa", "md"),
+  bundles     = list("Right Corticospinal", "Right SLF"),
+  bundles_col = "tractID"
+)
 ```
 
 We can already see that ALS has a profound effect on the tract profiles of the
@@ -66,13 +66,15 @@ the smooth change of FA over the length of the tract. We use an automated
 strategy to find `k`.
 
 ```{r}
-gam_fit_cst <- tractable_single_bundle(df_afq = sarica,
-                                    tract = "Right Corticospinal",
-                                    participant_id = "subjectID",
-                                    group_by = "group",
-                                    covariates = c("age", "group"),
-                                    dwi_metric = "fa",
-                                    k = "auto")
+gam_fit_cst <- tractable_single_bundle(
+  df_afq         = sarica,
+  tract          = "Right Corticospinal",
+  participant_id = "subjectID",
+  group_by       = "group",
+  covariates     = c("age", "group"),
+  dwi_metric     = "fa",
+  k              = "auto"
+)
 ```
 
 Examining the summary of the resulting GAM fit object shows us that the `k=16`
@@ -90,13 +92,15 @@ significant difference between the groups in this bundle, indicating that the
 effect observed in CST is rather specific to this bundle.
 
 ```{r}
-gam_fit_slf <- tractable_single_bundle(df_afq = sarica,
-                                       tract = "Right SLF",
-                                       participant_id = "subjectID",
-                                       group_by = "group",
-                                       covariates = c("age","group"),
-                                       dwi_metric = "fa",
-                                       k = "auto")
+gam_fit_slf <- tractable_single_bundle(
+  df_afq         = sarica,
+  tract          = "Right SLF",
+  participant_id = "subjectID",
+  group_by       = "group",
+  covariates     = c("age","group"),
+  dwi_metric     = "fa",
+  k              = "auto"
+)
 
 summary(gam_fit_slf)
 ```
