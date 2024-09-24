@@ -35,7 +35,7 @@ subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
 ```{r}
-sarica <- tractable::read.afq.sarica()
+sarica <- tractable::read_afq_sarica()
 sarica$group <- factor(sarica$class)
 sarica$subjectID <- unclass(factor(sarica$subjectID))
 ```
