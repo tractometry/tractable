@@ -44,41 +44,37 @@ We fit models with different levels of flexibility, encoded in different values
 of `k`:
 
 ```{r}
+k_values <- c(4, 8, 16, 32)
 
-k_values = c(4, 8, 16, 32)
-
-models = list()
-
-for (ii in seq_along(k_values)){
-   models[[ii]] <- tractable_single_bundle(df_afq = sarica,
-                                        tract = "Right Corticospinal",
-                                        participant_id = "subjectID",
-                                        group_by = "group",
-                                        covariates = c("age", "group"),
-                                        dwi_metric = "fa",
-                                        k = k_values[ii])
-
+models <- list()
+for (i in 1:length(k_values)){
+   models[[i]] <- tractable_single_bundle(
+    df_afq = sarica,
+    tract = "Right Corticospinal",
+    participant_id = "subjectID",
+    group_by = "group",
+    covariates = c("age", "group"),
+    dwi_metric = "fa",
+    k = k_values[i]
+  )
 }
 ```
 
 And we plot the smooths, divided by group for each one of these levels:
 
 ```{r}
+plots <- list()
+for (i in 1:length(k_values)){
 
-plots =list()
+  sm <- smooth_estimates(models[[i]]) %>%
+    gratia::add_confint()
 
-for (ii in seq_along(k_values)){
-
-sm <- smooth_estimates(models[[ii]]) %>%
-  gratia::add_confint()
-
-plots[[ii]] <- sm %>%
-      ggplot() +
-      geom_ribbon(aes(group=group, ymin = lower_ci, ymax = upper_ci, x = nodeID),
-                  alpha = 0.2) +
-      geom_line(aes(group=group, color=group, x = nodeID, y = est))+
-  labs(y = "FA", title = sprintf("k=%d", k_values[ii]))
-
+  plots[[i]] <- sm %>%
+        ggplot() +
+        geom_ribbon(aes(group = group, ymin = lower_ci, ymax = upper_ci, 
+                        x = nodeID), alpha = 0.2) +
+        geom_line(aes(group = group, color = group, x = nodeID, y = est))+
+        labs(y = "FA", title = sprintf("k = %d", k_values[i]))
 }
 
 plots
