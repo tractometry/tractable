@@ -1,6 +1,10 @@
 install:
 	R CMD INSTALL .
 
+reinstall:
+	R CMD REMOVE tractable
+	R CMD INSTALL .
+
 check:
 	R CMD check .
 

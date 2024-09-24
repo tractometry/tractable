@@ -9,9 +9,9 @@ Authors@R:
            comment = c(ORCID = "0000-0001-9276-9084")),
     person(given = "Kelly",
            family = "Chang",
-           email = "XXX",
+           email = "kchang4@uw.edu",
            role = c("aut"),
-           comment = c(ORCID = "XXX")),
+           comment = c(ORCID = "0000-0001-5385-2782")),
     person(given = "Teresa",
            family = "Gomez",
            email = "tmgomez@uw.edu",
@@ -37,7 +37,7 @@ Description: A toolbox for analyzing diffusion MRI tract profiles.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Imports:
     aws.s3,
     dplyr,
@@ -58,7 +58,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    gratia,
+    gratia (>= 0.9.2),
     patchwork
 Config/testthat/edition: 3
 URL: https://github.com/yeatmanlab/tractable

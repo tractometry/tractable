@@ -309,7 +309,7 @@ spline_diff <- function(gam_model,
 #'
 #' @examples
 #' \dontrun{
-#' df <- read.afq.sarica()
+#' df <- read_afq_sarica()
 #'
 #'plot_tract_profiles(
 #'   df,

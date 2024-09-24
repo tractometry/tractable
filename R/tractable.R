@@ -1,7 +1,7 @@
 #' Analyze group differences in a single dMRI tract profile using GAMs
 #'
 #' @param df_afq Input AFQ dataframe. If NULL, this function will load data
-#'     using read.afq.data and the additional arguments in ...
+#'     using read_afq_files and the additional arguments in ...
 #' @param tract Abbreviated tract name, e.g., "CST_L" or "OR"
 #' @param dwi_metric The diffusion metric to model (e.g. "FA", "MD")
 #' @param participant_id The name of the column that encodes participant ID
@@ -21,7 +21,7 @@
 #' @export
 #'
 #' @examples
-#' sarica <- read.afq.sarica()
+#' sarica <- read_afq_sarica()
 #' sarica$group <- factor(sarica$class)
 #' sarica$subjectID <- unclass(factor(sarica$subjectID))
 #' tractable_single_bundle(df_afq = sarica,

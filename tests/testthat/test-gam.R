@@ -1,5 +1,5 @@
 test_that("tractable_single_bundle runs as expected", {
- sarica <- read.afq.sarica()
+ sarica <- read_afq_sarica()
  sarica$group <- factor(sarica$class)
  sarica$subjectID <- unclass(factor(sarica$subjectID))
  gam_fit <- expect_no_error(

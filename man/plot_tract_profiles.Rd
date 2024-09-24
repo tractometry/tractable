@@ -62,7 +62,7 @@ Plot tract profiles for each bundle as a facet and each metric as a figure.
 }
 \examples{
 \dontrun{
-df <- read.afq.sarica()
+df <- read_afq_sarica()
 
 plot_tract_profiles(
   df,

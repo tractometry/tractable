@@ -1,5 +1,5 @@
 test_that("select_bundle runs as expected", {
- sarica <- read.afq.sarica()
+ sarica <- read_afq_sarica()
  sarica$group <- factor(sarica$class)
  sarica$subjectID <- unclass(factor(sarica$subjectID))
 
