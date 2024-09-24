@@ -26,7 +26,7 @@ You can install the development version of tractable from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("yeatmanlab/tractable")
+devtools::install_github("tractometry/tractable")
 ```
 
 ## Example
