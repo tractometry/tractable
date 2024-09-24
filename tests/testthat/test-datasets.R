@@ -28,7 +28,7 @@ test_that("read_afq_files returns an unsupervised dataset when pheno_csv is NULL
                        dwi_metrics = c("fa", "md"),
                        pheno_cols  = c("age", "class", "gender"))
 
-  expect_equal(! "age" %in% colnames(df), TRUE)
-  expect_equal(! "class" %in% colnames(df), TRUE)
-  expect_equal(! "gender" %in% colnames(df), TRUE)
+  expect_true(! "age" %in% colnames(df))
+  expect_true(! "class" %in% colnames(df))
+  expect_true(! "gender" %in% colnames(df))
 })
