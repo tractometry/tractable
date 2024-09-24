@@ -45,7 +45,7 @@ this dataset.
 
 ```{r}
 tractable::plot_tract_profiles(
-  df_afq      = sarica,
+  df          = sarica,
   group_col   = "group",
   n_groups    = 2,
   metrics     = c("fa", "md"),
@@ -66,7 +66,7 @@ the smooth change of FA over the length of the tract. We use an automated
 strategy to find `k`.
 
 ```{r}
-gam_fit_cst <- tractable_single_bundle(
+gam_fit_cst <- tractable::tractable_single_bundle(
   df_afq         = sarica,
   tract          = "Right Corticospinal",
   participant_id = "subjectID",
@@ -92,7 +92,7 @@ significant difference between the groups in this bundle, indicating that the
 effect observed in CST is rather specific to this bundle.
 
 ```{r}
-gam_fit_slf <- tractable_single_bundle(
+gam_fit_slf <- tractable::tractable_single_bundle(
   df_afq         = sarica,
   tract          = "Right SLF",
   participant_id = "subjectID",

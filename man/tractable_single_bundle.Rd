@@ -19,7 +19,7 @@ tractable_single_bundle(
 }
 \arguments{
 \item{df_afq}{Input AFQ dataframe. If NULL, this function will load data
-using read.afq.data and the additional arguments in ...}
+using read_afq_files and the additional arguments in ...}
 
 \item{tract}{Abbreviated tract name, e.g., "CST_L" or "OR"}
 
@@ -49,7 +49,7 @@ between beta and gamma distributions.}
 Analyze group differences in a single dMRI tract profile using GAMs
 }
 \examples{
-sarica <- read.afq.sarica()
+sarica <- read_afq_sarica()
 sarica$group <- factor(sarica$class)
 sarica$subjectID <- unclass(factor(sarica$subjectID))
 tractable_single_bundle(df_afq = sarica,
