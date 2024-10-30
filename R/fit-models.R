@@ -206,13 +206,15 @@ fit_gam <- function(df_tract,
   # Determine Rho
   if (autocor){
     
-    df_tract = df_tract %>% dplyr::mutate(start.event = nodeID==0)
+    df_tract_start = df_tract %>% dplyr::mutate(start.event = nodeID==0)
     
     gam_fit_noac <- mgcv::bam(
       formula,
-      data = df_tract,
+      data = df_tract_start,
       family = linkfamily,
       method = method,
+      rho=0,
+      AR.start = df_tract_start$start.event,
       ... = ...
     )
     
@@ -220,11 +222,11 @@ fit_gam <- function(df_tract,
     
     gam_fit <- mgcv::bam(
       formula,
-      data = df_tract,
+      data = df_tract_start,
       family = linkfamily,
       method = method,
       rho=rho1,
-      AR.start = df_tract$start.event,
+      AR.start = df_tract_start$start.event,
       ... = ...
     )
   }
