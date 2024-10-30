@@ -205,8 +205,6 @@ fit_gam <- function(df_tract,
   # Determine Rho
   if (autocor) {
 
-    formula <- stats::as.formula(paste(deparse(formula), collapse = ""))
-
     gam_fit_start <- mgcv::bam(
       stats::as.formula(formula),
       data = df_tract,
