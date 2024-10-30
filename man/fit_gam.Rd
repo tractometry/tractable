@@ -13,6 +13,7 @@ fit_gam(
   participant_id = NULL,
   formula = NULL,
   k = NULL,
+  autocor = TRUE,
   family = "auto",
   method = "fREML",
   ...
@@ -47,6 +48,9 @@ inputs that determine the formula must be set to NULL.}
 If k = 'auto' (default), this function will attempt to find the best
 value.}
 
+\item{autocor}{Whether to account for autocorrelation in the tract profile.
+Default = TRUE.}
+
 \item{family}{Distribution to use for the gam. Must be either 'gamma',
 'beta', or 'auto'. If 'auto', this function will select the best fit
 between beta and gamma distributions.}
@@ -63,10 +67,13 @@ This function has a series of steps:
 \itemize{
 \item If family == "auto", choose the distribution (either beta or gamma)
 that has the lowest AIC when fitting to the dMRI metric data
-\item If k == "auto", build an initial GAM model with k = 16 and continue to
-double the k value until gam.check shows that k is large enough
+\item If k == "auto", build an initial GAM model with k = 16 and
+continue to double the k value until gam.check shows that k is
+large enough
 \item Fit a GAM model such that: \cr \cr
-target ~ covariates + s(nodeID, by=group, k = k_value) + s(subjectID, bs = "re")
+target ~ covariates +
+s(nodeID, by=group, k = k_value) +
+s(subjectID, bs = "re")
 \cr
 \item Optionally save the output of gam.check and summary to files.
 }
