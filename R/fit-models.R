@@ -204,46 +204,43 @@ fit_gam <- function(df_tract,
   }
 
   # Determine Rho
-  if (autocor){
-    
-    gam_fit_noac <- mgcv::bam(
-      formula,
-      data = df_tract,
-      family = linkfamily,
-      method = method,
-      rho=0,
-      AR.start = df_tract$nodeID==0,
-      discrete=T,
-      ... = ...
-    )
-    
-    rho1 <- itsadug::start_value_rho(gam_fit_noac)
-    
-    gam_fit <- mgcv::bam(
-      formula,
-      data = df_tract,
-      family = linkfamily,
-      method = method,
-      rho=rho1,
-      AR.start = df_tract$nodeID==0,
-      discrete=T,
-      ... = ...
-    )
-  }
-  else {
-    # Fit the gam without accounting for autocorrelation
-    gam_fit <- mgcv::bam(
-      formula,
-      data = df_tract,
-      family = linkfamily,
-      method = method,
-      ... = ...
-    )
-  }
+  if (autocor) {
 
+    gam_fit_start <- mgcv::bam(
+      formula,
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      rho = 0,
+      AR.start = df_tract$nodeID == 0,
+      discrete = TRUE,
+      ... = ...
+    )
+
+    rho1 <- itsadug::start_value_rho(gam_fit_start)
+
+    gam_fit_rho <- mgcv::bam(
+      formula,
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      rho = rho1,
+      AR.start = df_tract$nodeID == 0,
+      discrete = TRUE,
+      ... = ...
+    )
+    return(gam_fit_rho)
+  }
+  # Fit the gam without accounting for autocorrelation
+  gam_fit <- mgcv::bam(
+    formula,
+    data = df_tract,
+    family = linkfamily,
+    method = method,
+    ... = ...
+  )
   return(gam_fit)
 }
-
 
 save_gam_outputs <- function(gam_fit, out_dir, tract_name){
     utils::capture.output(
