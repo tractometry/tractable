@@ -36,8 +36,12 @@ test_that("fit_gam runs as expected", {
   gam_fit <- expect_no_error(tractable::fit_gam(df_tract = df_tract,
                                                 formula = formula))
 
+  gam_fit <- expect_no_error(tractable::fit_gam(df_tract = df_tract,
+                                                autocor = FALSE,
+                                                formula = formula))
+
   # Check that formula can be passed as a string
-  string_formula = 'fa ~ age + group + s(nodeID, by = group, k = 40) + 
+  string_formula = 'fa ~ age + group + s(nodeID, by = group, k = 40) +
     s(subjectID, bs = "re")'
   gam_fit <- expect_no_error(tractable::fit_gam(df_tract = df_tract,
                                             formula = string_formula))

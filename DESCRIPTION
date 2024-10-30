@@ -22,6 +22,11 @@ Authors@R:
            email = "mphagen@uw.edu",
            role = c("aut"),
            comment = c(ORCID = "0000-0002-7454-8189")),
+    person(given = "Ethan",
+           family = "Roy",
+           email = "ethanroy395@gmail.com",
+           role = c("aut"),
+           comment = c(ORCID = "0000-0002-4956-2237")),
     person(given = "Ariel",
            family = "Rokem",
            email = "arokem@gmail.com",
@@ -31,6 +36,7 @@ Author: Adam Richie-Halford [aut, cre],
     Kelly Chang (aut),
     Teresa Gomez (aut),
     McKenzie Hagen (aut),
+    Ethan Roy (aut),
     Ariel Rokem (aut)
 Maintainer: Adam Richie-Halford <richiehalford@gmail.com>
 Description: A toolbox for analyzing diffusion MRI tract profiles.
@@ -61,6 +67,6 @@ Suggests:
     gratia (>= 0.9.2),
     patchwork
 Config/testthat/edition: 3
-URL: https://github.com/yeatmanlab/tractable
-BugReports: https://github.com/yeatmanlab/tractable/issues
+URL: https://github.com/tractometry/tractable
+BugReports: https://github.com/tractometry/tractable/issues
 VignetteBuilder: knitr

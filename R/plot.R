@@ -48,6 +48,8 @@ tract_name <- function(tract) {
 }
 
 
+utils::globalVariables(c("metric", "tracts", "nodeID", "value"))
+
 #' Plot GAM splines for each group
 #'
 #' @param gam_model GAM object, produced by gam/bam
@@ -397,18 +399,26 @@ plot_tract_profiles <- function (
     # create current metric figure handle
     plot_handle <- plot_df %>%
       dplyr::filter(metric == curr_metric) %>%
-      ggplot2::ggplot(ggplot2::aes(x = nodeID, y = value, group = .data[[group_col]],
-                          color = .data[[group_col]], fill = .data[[group_col]])) +
-      ggplot2::stat_summary(
-        color = NA, geom = "ribbon", fun.data = ribbon_func, alpha = ribbon_alpha) +
-      ggplot2::stat_summary(
-        geom = "line", fun = line_func, linewidth = linewidth) +
-      ggplot2::scale_x_continuous(name = "") +
-      ggplot2::scale_y_continuous(name = curr_metric) +
-      ggplot2::scale_color_manual(values = color_palette) +
-      ggplot2::scale_fill_manual(values = color_palette) +
-      ggplot2::facet_wrap(~ tracts) +
-      ggplot2::theme_bw()
+      ggplot2::ggplot(ggplot2::aes_string(x = "nodeID",
+                                          y = "value",
+                                          group = group_col,
+                                          color = group_col,
+                                          fill = group_col)) +
+                      ggplot2::stat_summary(
+                          color = NA,
+                          geom = "ribbon",
+                          fun.data = ribbon_func,
+                          alpha = ribbon_alpha) +
+                      ggplot2::stat_summary(
+                          geom = "line",
+                          fun = line_func,
+                          linewidth = linewidth) +
+                      ggplot2::scale_x_continuous(name = "") +
+                      ggplot2::scale_y_continuous(name = curr_metric) +
+                      ggplot2::scale_color_manual(values = color_palette) +
+                      ggplot2::scale_fill_manual(values = color_palette) +
+                      ggplot2::facet_wrap(~ tracts) +
+                      ggplot2::theme_bw()
 
     # remove legend if no group
     # if (group_col == "_group") {

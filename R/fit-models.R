@@ -20,7 +20,9 @@
 #' formula <- build_formula(target = "dki_md",
 #'                          covariates = c("group", "sex", "s(age, by=sex)"),
 #'                          k = 32)
-build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "group", participant_id = "subjectID", k) {
+build_formula <- function(target, covariates, smooth_terms = NULL,
+                          group_by = "group",
+                          participant_id = "subjectID", k) {
   if (!is.null(covariates)) {
     vars <- paste0(covariates, collapse = "+")
   }
@@ -31,16 +33,17 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
   }
   subject_random_effect <- paste0("s(", participant_id, ", bs = \"re\")")
   if (is.null(covariates)) {
-    after_tilde <- paste0(list(node_smooth, subject_random_effect), collapse = "+")
+    after_tilde <- paste0(list(node_smooth, subject_random_effect),
+                          collapse = "+")
   } else {
-    after_tilde <- paste0(list(vars, node_smooth, subject_random_effect), collapse = "+")
+    after_tilde <- paste0(list(vars, node_smooth, subject_random_effect),
+                          collapse = "+")
   }
   if (!is.null(smooth_terms)) {
     after_tilde <- paste0(list(after_tilde, smooth_terms), collapse = "+")
   }
   dyn_string <- paste0(target, " ~ ", after_tilde)
-  formula = stats::as.formula(dyn_string)
-  return(formula)
+  return(dyn_string)
 }
 
 
@@ -50,10 +53,13 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
 #' \itemize{
 #'   \item If family == "auto", choose the distribution (either beta or gamma)
 #'      that has the lowest AIC when fitting to the dMRI metric data
-#'   \item If k == "auto", build an initial GAM model with k = 16 and continue to
-#'      double the k value until gam.check shows that k is large enough
+#'   \item If k == "auto", build an initial GAM model with k = 16 and
+#'      continue to double the k value until gam.check shows that k is
+#'      large enough
 #'   \item Fit a GAM model such that: \cr \cr
-#'      target ~ covariates + s(nodeID, by=group, k = k_value) + s(subjectID, bs = "re")
+#'      target ~ covariates +
+#'               s(nodeID, by=group, k = k_value) +
+#'               s(subjectID, bs = "re")
 #'      \cr
 #'   \item Optionally save the output of gam.check and summary to files.
 #' }
@@ -78,6 +84,8 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
 #' @param k Dimension of the basis used to represent the node smoothing term,
 #'     If k = 'auto' (default), this function will attempt to find the best
 #'     value.
+#' @param autocor Whether to account for autocorrelation in the tract profile.
+#'     Default = TRUE.
 #' @param family Distribution to use for the gam. Must be either 'gamma',
 #'     'beta', or 'auto'. If 'auto', this function will select the best fit
 #'     between beta and gamma distributions.
@@ -106,6 +114,7 @@ fit_gam <- function(df_tract,
                     participant_id = NULL,
                     formula = NULL,
                     k = NULL,
+                    autocor = TRUE,
                     family = "auto",
                     method="fREML",
                     ...) {
@@ -163,56 +172,83 @@ fit_gam <- function(df_tract,
   if (is.null(formula)) {
     if (k == "auto") {
       # Initial k value. This will be multiplied by 2 in the while loop
-      k.model <- 4
+      k_model <- 4
 
       # Initialize k check results to enter the while loop
-      k.indices <- list(0.0, 0.0)
-      k.pvals <- list(0.0, 0.0)
+      k_indices <- list(0.0, 0.0)
+      k_pvals <- list(0.0, 0.0)
 
-      while (any(k.indices < 1.0) | any(k.pvals <= 0.05)) {
-        k.model <- k.model * 2
+      while (any(k_indices < 1.0) | any(k_pvals <= 0.05)) {
+        k_model <- k_model * 2
         formula <- build_formula(target = target,
                                  covariates = covariates,
                                  smooth_terms = smooth_terms,
                                  group_by = group_by,
                                  participant_id = participant_id,
-                                 k = k.model)
+                                 k = k_model)
 
         # Fit the gam
         gam_fit <- mgcv::bam(
-          formula,
+          stats::as.formula(formula),
           data = df_tract,
           family = linkfamily,
           method = method,
           ... = ...
         )
 
-        k.check <- mgcv::k.check(gam_fit)
-        k.indices <- stats::na.omit(k.check[, "k-index"])
-        k.pvals <- stats::na.omit(k.check[, "p-value"])
+        k_check <- mgcv::k.check(gam_fit)
+        k_indices <- stats::na.omit(k_check[, "k-index"])
+        k_pvals <- stats::na.omit(k_check[, "p-value"])
        }
     } else {
-      k.model <- k
+      k_model <- k
     }
     formula <- build_formula(target = target,
                              covariates = covariates,
                              smooth_terms = smooth_terms,
                              group_by = group_by,
                              participant_id = participant_id,
-                             k = k.model)
+                             k = k_model)
   }
 
-  # Fit the gam
+  # Determine Rho
+  if (autocor) {
+
+    gam_fit_start <- mgcv::bam(
+      stats::as.formula(formula),
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      rho = 0,
+      AR.start = df_tract$nodeID == 0,
+      discrete = TRUE,
+      ... = ...
+    )
+
+    rho1 <- itsadug::start_value_rho(gam_fit_start)
+
+    gam_fit_rho <- mgcv::bam(
+      stats::as.formula(formula),
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      rho = rho1,
+      AR.start = df_tract$nodeID == 0,
+      discrete = TRUE,
+      ... = ...
+    )
+    return(gam_fit_rho)
+  }
+  # Fit the gam without accounting for autocorrelation
   gam_fit <- mgcv::bam(
-          formula,
-          data = df_tract,
-          family = linkfamily,
-          method = method,
-          ... = ...
+    stats::as.formula(formula),
+    data = df_tract,
+    family = linkfamily,
+    method = method,
+    ... = ...
   )
   return(gam_fit)
 }
-
 
 save_gam_outputs <- function(gam_fit, out_dir, tract_name){
     utils::capture.output(
