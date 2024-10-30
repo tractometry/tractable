@@ -215,6 +215,7 @@ fit_gam <- function(df_tract,
       method = method,
       rho=0,
       AR.start = df_tract_start$start.event,
+      discrete=T,
       ... = ...
     )
     
@@ -227,6 +228,7 @@ fit_gam <- function(df_tract,
       method = method,
       rho=rho1,
       AR.start = df_tract_start$start.event,
+      discrete=T,
       ... = ...
     )
   }
