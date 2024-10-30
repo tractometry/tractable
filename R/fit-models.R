@@ -106,6 +106,7 @@ fit_gam <- function(df_tract,
                     participant_id = NULL,
                     formula = NULL,
                     k = NULL,
+                    autocor = T,
                     family = "auto",
                     method="fREML",
                     ...) {
@@ -202,14 +203,42 @@ fit_gam <- function(df_tract,
                              k = k.model)
   }
 
-  # Fit the gam
-  gam_fit <- mgcv::bam(
-          formula,
-          data = df_tract,
-          family = linkfamily,
-          method = method,
-          ... = ...
-  )
+  # Determine Rho
+  if (autocor){
+    
+    df_tract = df_tract %>% mutate(start.event = nodeID==0)
+    
+    gam_fit_noac <- mgcv::bam(
+      formula,
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      ... = ...
+    )
+    
+    rho1 <- start_value_rho(gam_fit_noac)
+    
+    gam_fit <- mgcv::bam(
+      formula,
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      rho=rho1,
+      AR.start = df_tract$start.event
+      ... = ...
+    )
+  }
+  else {
+    # Fit the gam without accounting for autocorrelation
+    gam_fit <- mgcv::bam(
+      formula,
+      data = df_tract,
+      family = linkfamily,
+      method = method,
+      ... = ...
+    )
+  }
+
   return(gam_fit)
 }
 
