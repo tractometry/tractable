@@ -20,7 +20,9 @@
 #' formula <- build_formula(target = "dki_md",
 #'                          covariates = c("group", "sex", "s(age, by=sex)"),
 #'                          k = 32)
-build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "group", participant_id = "subjectID", k) {
+build_formula <- function(target, covariates, smooth_terms = NULL,
+                          group_by = "group",
+                          participant_id = "subjectID", k) {
   if (!is.null(covariates)) {
     vars <- paste0(covariates, collapse = "+")
   }
@@ -31,9 +33,11 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
   }
   subject_random_effect <- paste0("s(", participant_id, ", bs = \"re\")")
   if (is.null(covariates)) {
-    after_tilde <- paste0(list(node_smooth, subject_random_effect), collapse = "+")
+    after_tilde <- paste0(list(node_smooth, subject_random_effect),
+                          collapse = "+")
   } else {
-    after_tilde <- paste0(list(vars, node_smooth, subject_random_effect), collapse = "+")
+    after_tilde <- paste0(list(vars, node_smooth, subject_random_effect),
+                          collapse = "+")
   }
   if (!is.null(smooth_terms)) {
     after_tilde <- paste0(list(after_tilde, smooth_terms), collapse = "+")
@@ -49,10 +53,13 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
 #' \itemize{
 #'   \item If family == "auto", choose the distribution (either beta or gamma)
 #'      that has the lowest AIC when fitting to the dMRI metric data
-#'   \item If k == "auto", build an initial GAM model with k = 16 and continue to
-#'      double the k value until gam.check shows that k is large enough
+#'   \item If k == "auto", build an initial GAM model with k = 16 and
+#'      continue to double the k value until gam.check shows that k is
+#'      large enough
 #'   \item Fit a GAM model such that: \cr \cr
-#'      target ~ covariates + s(nodeID, by=group, k = k_value) + s(subjectID, bs = "re")
+#'      target ~ covariates +
+#'               s(nodeID, by=group, k = k_value) +
+#'               s(subjectID, bs = "re")
 #'      \cr
 #'   \item Optionally save the output of gam.check and summary to files.
 #' }
@@ -77,6 +84,8 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
 #' @param k Dimension of the basis used to represent the node smoothing term,
 #'     If k = 'auto' (default), this function will attempt to find the best
 #'     value.
+#' @param autocor Whether to account for autocorrelation in the tract profile.
+#'     Default = TRUE.
 #' @param family Distribution to use for the gam. Must be either 'gamma',
 #'     'beta', or 'auto'. If 'auto', this function will select the best fit
 #'     between beta and gamma distributions.
@@ -105,7 +114,7 @@ fit_gam <- function(df_tract,
                     participant_id = NULL,
                     formula = NULL,
                     k = NULL,
-                    autocor = T,
+                    autocor = TRUE,
                     family = "auto",
                     method="fREML",
                     ...) {
