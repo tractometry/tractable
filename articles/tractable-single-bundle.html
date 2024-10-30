@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">tractable</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/changing-k.html">Changing model flexibility</a></li>
+    <li><a class="dropdown-item" href="../articles/tractable-autocorrelations.html">Including Autocorrelation Effects in GAMs</a></li>
     <li><a class="dropdown-item" href="../articles/tractable-single-bundle.html">Fitting Generalized Additive Models (GAMs)</a></li>
   </ul>
 </li>
@@ -42,7 +43,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/yeatmanlab/tractable/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/tractometry/tractable/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -59,7 +60,7 @@
       <h1>Fitting Generalized Additive Models (GAMs)</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/yeatmanlab/tractable/blob/0.1.0/vignettes/tractable-single-bundle.Rmd" class="external-link"><code>vignettes/tractable-single-bundle.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/tractometry/tractable/blob/0.2/vignettes/tractable-single-bundle.Rmd" class="external-link"><code>vignettes/tractable-single-bundle.Rmd</code></a></small>
       <div class="d-none name"><code>tractable-single-bundle.Rmd</code></div>
     </div>
 
@@ -71,7 +72,7 @@ from diffusion MRI measurements in a group of patients with Amyotrophic
 Lateral Sclerosis (ALS) and a group of matched controls <span class="citation">(Sarica et al. 2017)</span>.</p>
 <p>We start by loading the <code>tractable</code> library:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/yeatmanlab/tractable" class="external-link">tractable</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/tractometry/tractable" class="external-link">tractable</a></span><span class="op">)</span></span></code></pre></div>
 <p>Next, we will use a function that is included in
 <code>tractable</code> to read this dataset directly into memory.
 Importantly, both the group (“ALS” or “CTRL”) and the subject identifier
@@ -139,7 +140,7 @@ and no statistically significant effect of age (p=0.2748).</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_fit_cst</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Family: Beta regression(113.72) </span></span>
+<span><span class="co">#&gt; Family: Beta regression(61.146) </span></span>
 <span><span class="co">#&gt; Link function: logit </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula:</span></span>
@@ -147,23 +148,23 @@ and no statistically significant effect of age (p=0.2748).</p>
 <span><span class="co">#&gt;     bs = "re")</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Parametric coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept) -0.148763   0.080666  -1.844   0.0652 .  </span></span>
-<span><span class="co">#&gt; age          0.001425   0.001305   1.092   0.2748    </span></span>
-<span><span class="co">#&gt; groupCTRL    0.138659   0.022209   6.243 4.66e-10 ***</span></span>
+<span><span class="co">#&gt;              Estimate Std. Error t value Pr(&gt;|t|)  </span></span>
+<span><span class="co">#&gt; (Intercept) -0.329785   0.245062  -1.346    0.178  </span></span>
+<span><span class="co">#&gt; age          0.003904   0.003960   0.986    0.324  </span></span>
+<span><span class="co">#&gt; groupCTRL    0.144626   0.071782   2.015    0.044 *</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Approximate significance of smooth terms:</span></span>
-<span><span class="co">#&gt;                       edf Ref.df      F p-value    </span></span>
-<span><span class="co">#&gt; s(nodeID):groupALS  14.65  14.98 512.68  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s(nodeID):groupCTRL 14.60  14.97 569.00  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s(subjectID)        42.22  45.00  15.13  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt;                       edf Ref.df      F  p-value    </span></span>
+<span><span class="co">#&gt; s(nodeID):groupALS  14.50  14.97 74.217  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; s(nodeID):groupCTRL 14.38  14.95 85.385  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; s(subjectID)        37.89  45.00  9.105 0.000674 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; R-sq.(adj) =  0.793   Deviance explained = 80.1%</span></span>
-<span><span class="co">#&gt; fREML = 6902.9  Scale est. = 1         n = 4734</span></span></code></pre></div>
+<span><span class="co">#&gt; R-sq.(adj) =  0.613   Deviance explained = 62.3%</span></span>
+<span><span class="co">#&gt; fREML = -6443.6  Scale est. = 1         n = 4734</span></span></code></pre></div>
 <p>Running the same analysis on the data from SLF, we see that there is
 no significant difference between the groups in this bundle, indicating
 that the effect observed in CST is rather specific to this bundle.</p>
@@ -180,7 +181,7 @@ that the effect observed in CST is rather specific to this bundle.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_fit_slf</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Family: Beta regression(138.594) </span></span>
+<span><span class="co">#&gt; Family: Beta regression(95.864) </span></span>
 <span><span class="co">#&gt; Link function: logit </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula:</span></span>
@@ -188,23 +189,23 @@ that the effect observed in CST is rather specific to this bundle.</p>
 <span><span class="co">#&gt;     bs = "re")</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Parametric coefficients:</span></span>
-<span><span class="co">#&gt;               Estimate Std. Error t value Pr(&gt;|t|)   </span></span>
-<span><span class="co">#&gt; (Intercept) -0.3253345  0.1247686  -2.608  0.00915 **</span></span>
-<span><span class="co">#&gt; age         -0.0004088  0.0020187  -0.203  0.83953   </span></span>
-<span><span class="co">#&gt; groupCTRL    0.0225944  0.0343532   0.658  0.51076   </span></span>
+<span><span class="co">#&gt;               Estimate Std. Error t value Pr(&gt;|t|)  </span></span>
+<span><span class="co">#&gt; (Intercept) -0.3103302  0.1374484  -2.258    0.024 *</span></span>
+<span><span class="co">#&gt; age         -0.0006771  0.0022217  -0.305    0.761  </span></span>
+<span><span class="co">#&gt; groupCTRL    0.0238207  0.0389222   0.612    0.541  </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Approximate significance of smooth terms:</span></span>
-<span><span class="co">#&gt;                       edf Ref.df      F p-value    </span></span>
-<span><span class="co">#&gt; s(nodeID):groupALS  14.59  14.97 379.87  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s(nodeID):groupCTRL 14.61  14.97 379.60  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s(subjectID)        44.04  45.00  45.53  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt;                          edf Ref.df       F p-value    </span></span>
+<span><span class="co">#&gt; s(nodeID):groupALS  14.75251  14.99 147.703  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; s(nodeID):groupCTRL 14.75346  14.99 158.462  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; s(subjectID)         0.01141  45.00   0.012  &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; R-sq.(adj) =  0.744   Deviance explained = 76.6%</span></span>
-<span><span class="co">#&gt; fREML = 7006.8  Scale est. = 1         n = 4785</span></span></code></pre></div>
+<span><span class="co">#&gt; R-sq.(adj) =  0.632   Deviance explained = 66.2%</span></span>
+<span><span class="co">#&gt; fREML = -9537.2  Scale est. = 1         n = 4785</span></span></code></pre></div>
 <p>This is in line with other work that we have conducted with this
 dataset using other methods <span class="citation">(Richie-Halford et
 al. 2021)</span>.</p>
@@ -240,7 +241,7 @@ Commun.</em> 9 (1): 940.
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Adam Richie-Halford, Kelly Chang, Teresa Gomez, McKenzie Hagen, Ariel Rokem.</p>
+  <p>Developed by Adam Richie-Halford, Kelly Chang, Teresa Gomez, McKenzie Hagen, Ethan Roy, Ariel Rokem.</p>
 </div>
 
 <div class="pkgdown-footer-right">
