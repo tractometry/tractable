@@ -39,8 +39,7 @@ build_formula <- function(target, covariates, smooth_terms = NULL, group_by = "g
     after_tilde <- paste0(list(after_tilde, smooth_terms), collapse = "+")
   }
   dyn_string <- paste0(target, " ~ ", after_tilde)
-  formula = stats::as.formula(dyn_string)
-  return(formula)
+  return(dyn_string)
 }
 
 
@@ -181,7 +180,7 @@ fit_gam <- function(df_tract,
 
         # Fit the gam
         gam_fit <- mgcv::bam(
-          formula,
+          stats::as.formula(formula),
           data = df_tract,
           family = linkfamily,
           method = method,
@@ -209,7 +208,7 @@ fit_gam <- function(df_tract,
     formula <- stats::as.formula(paste(deparse(formula), collapse = ""))
 
     gam_fit_start <- mgcv::bam(
-      formula,
+      stats::as.formula(formula),
       data = df_tract,
       family = linkfamily,
       method = method,
@@ -222,7 +221,7 @@ fit_gam <- function(df_tract,
     rho1 <- itsadug::start_value_rho(gam_fit_start)
 
     gam_fit_rho <- mgcv::bam(
-      formula,
+      stats::as.formula(formula),
       data = df_tract,
       family = linkfamily,
       method = method,
@@ -235,7 +234,7 @@ fit_gam <- function(df_tract,
   }
   # Fit the gam without accounting for autocorrelation
   gam_fit <- mgcv::bam(
-    formula,
+    stats::as.formula(formula),
     data = df_tract,
     family = linkfamily,
     method = method,
