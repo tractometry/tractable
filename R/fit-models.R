@@ -163,20 +163,20 @@ fit_gam <- function(df_tract,
   if (is.null(formula)) {
     if (k == "auto") {
       # Initial k value. This will be multiplied by 2 in the while loop
-      k.model <- 4
+      k_model <- 4
 
       # Initialize k check results to enter the while loop
-      k.indices <- list(0.0, 0.0)
-      k.pvals <- list(0.0, 0.0)
+      k_indices <- list(0.0, 0.0)
+      k_pvals <- list(0.0, 0.0)
 
-      while (any(k.indices < 1.0) | any(k.pvals <= 0.05)) {
-        k.model <- k.model * 2
+      while (any(k_indices < 1.0) | any(k_pvals <= 0.05)) {
+        k_model <- k_model * 2
         formula <- build_formula(target = target,
                                  covariates = covariates,
                                  smooth_terms = smooth_terms,
                                  group_by = group_by,
                                  participant_id = participant_id,
-                                 k = k.model)
+                                 k = k_model)
 
         # Fit the gam
         gam_fit <- mgcv::bam(
@@ -187,19 +187,19 @@ fit_gam <- function(df_tract,
           ... = ...
         )
 
-        k.check <- mgcv::k.check(gam_fit)
-        k.indices <- stats::na.omit(k.check[, "k-index"])
-        k.pvals <- stats::na.omit(k.check[, "p-value"])
+        k_check <- mgcv::k.check(gam_fit)
+        k_indices <- stats::na.omit(k_check[, "k-index"])
+        k_pvals <- stats::na.omit(k_check[, "p-value"])
        }
     } else {
-      k.model <- k
+      k_model <- k
     }
     formula <- build_formula(target = target,
                              covariates = covariates,
                              smooth_terms = smooth_terms,
                              group_by = group_by,
                              participant_id = participant_id,
-                             k = k.model)
+                             k = k_model)
   }
 
   # Determine Rho
