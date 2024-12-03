@@ -413,8 +413,8 @@ plot_tract_profiles <- function (
                           geom = "line",
                           fun = line_func,
                           linewidth = linewidth) +
-                      ggplot2::scale_x_continuous(name = "") +
-                      ggplot2::scale_y_continuous(name = curr_metric) +
+                      ggplot2::scale_x_continuous(name = "Node #") +
+                      ggplot2::scale_y_continuous(name = toupper(curr_metric)) +
                       ggplot2::scale_color_manual(values = color_palette) +
                       ggplot2::scale_fill_manual(values = color_palette) +
                       ggplot2::facet_wrap(~ tracts) +
