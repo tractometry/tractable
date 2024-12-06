@@ -2,13 +2,13 @@
 % Please edit documentation in R/plot.R
 \name{plot_tract_profiles}
 \alias{plot_tract_profiles}
-\title{Plot tract profiles for each bundle as a facet and each metric as a figure.}
+\title{Plot tract profiles for each tract as a facet and each metric as a figure.}
 \usage{
 plot_tract_profiles(
   df,
   metrics = NULL,
-  bundles = NULL,
-  bundles_col = "tractID",
+  tracts = NULL,
+  tracts_col = "tractID",
   group_col = NULL,
   line_func = "mean",
   linewidth = 1,
@@ -26,12 +26,12 @@ plot_tract_profiles(
 \item{metrics}{Name(s) of the metrics to plot per figure, character vector.
 By default, will be all diffusion metrics in the provided data frame.}
 
-\item{bundles}{Name(s) of the tract bundles to plot per facet, character
-vector. By default, will be all tract bundles in the provided data
+\item{tracts}{Name(s) of the tract to plot per facet, character
+vector. By default, will be all tracts in the provided data
 frame.}
 
-\item{bundles_col}{Name of the column in the provided data frame with the
-tract bundles.}
+\item{tracts_col}{Name of the column in the provided data frame with the
+tract.}
 
 \item{group_col}{Name of the column in the data frame to group by as a color,
 character. By default, no grouping variable is provided.}
@@ -58,7 +58,7 @@ See \link[ggplot2]{stat_summary} for more information.}
 List of plot handles corresponding to the specified metrics.
 }
 \description{
-Plot tract profiles for each bundle as a facet and each metric as a figure.
+Plot tract profiles for each tract as a facet and each metric as a figure.
 }
 \examples{
 \dontrun{
@@ -67,7 +67,7 @@ df <- read_afq_sarica()
 plot_tract_profiles(
   df,
   metrics = c("fa"),
-  bundles = c("Left Corticospinal", "Right Corticospinal"),
+  tracts = c("Left Corticospinal", "Right Corticospinal"),
   group_col = "class",
   figsize   = c(8, 6)
 )
@@ -75,7 +75,7 @@ plot_tract_profiles(
 plot_tract_profiles(
   df,
   metrics = c("fa"),
-  bundles = c("Left Corticospinal", "Right Corticospinal"),
+  tracts = c("Left Corticospinal", "Right Corticospinal"),
   group_col = "age",
   n_groups  = 3,
   pal_name  = "Spectral",

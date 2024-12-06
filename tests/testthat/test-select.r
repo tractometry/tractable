@@ -1,10 +1,10 @@
-test_that("select_bundle runs as expected", {
+test_that("select_tract runs as expected", {
  sarica <- read_afq_sarica()
  sarica$group <- factor(sarica$class)
  sarica$subjectID <- unclass(factor(sarica$subjectID))
 
  selected <- expect_no_error(
-    select_bundle(df_afq = sarica,
+    select_tract(df_afq = sarica,
                   tract = "Right Corticospinal",
                   dwi_metric = "fa",
                   covariates = c("age", "group"),
@@ -19,7 +19,7 @@ expect_identical(tract_names, c("Right Corticospinal"))
 expect_identical(length(colnames(df_tract)), as.integer(6))
 
  selected <- expect_no_error(
-    select_bundle(df_afq = sarica,
+    select_tract(df_afq = sarica,
                   tract = "all",
                   dwi_metric = "fa",
                   covariates = c("age", "group"),

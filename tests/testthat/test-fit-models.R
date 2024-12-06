@@ -4,7 +4,7 @@ test_that("fit_gam runs as expected", {
   sarica$group <- factor(sarica$class)
   sarica$subjectID <- unclass(factor(sarica$subjectID))
 
-  selected <- select_bundle(
+  selected <- select_tract(
     df_afq = sarica,
     tract = "Right Corticospinal",
     dwi_metric = "fa",

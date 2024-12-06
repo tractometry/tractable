@@ -48,7 +48,7 @@ k_values <- c(4, 8, 16, 32)
 
 models <- list()
 for (i in 1:length(k_values)){
-   models[[i]] <- tractable_single_bundle(
+   models[[i]] <- tractable_single_tract(
     df_afq = sarica,
     tract = "Right Corticospinal",
     participant_id = "subjectID",
@@ -68,10 +68,10 @@ for (i in 1:length(k_values)){
   plots[[i]] <- models[[i]] %>%
     gratia::smooth_estimates() %>%
     gratia::add_confint() %>%
-    ggplot2::ggplot(aes(x = nodeID, y = .estimate, ymin = .lower_ci, 
-                        ymax = .upper_ci, group = group, color = group, 
+    ggplot2::ggplot(aes(x = nodeID, y = .estimate, ymin = .lower_ci,
+                        ymax = .upper_ci, group = group, color = group,
                         fill = group)) +
-    ggplot2::geom_ribbon(color = NA, alpha = 0.2) + 
+    ggplot2::geom_ribbon(color = NA, alpha = 0.2) +
     ggplot2::geom_line() +
     ggplot2::labs(y = "FA", title = sprintf("k = %d", k_values[i]))
 }
