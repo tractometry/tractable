@@ -24,13 +24,13 @@
 #' sarica <- read_afq_sarica()
 #' sarica$group <- factor(sarica$class)
 #' sarica$subjectID <- unclass(factor(sarica$subjectID))
-#' tractable_single_bundle(df_afq = sarica,
+#' tractable_single_tract(df_afq = sarica,
 #'                      tract = "Right Corticospinal",
 #'                      participant_id = "subjectID",
 #'                      group_by = "group",
 #'                      covariates = c("age","group"),
 #'                      dwi_metric = "fa")
-tractable_single_bundle <- function(df_afq,
+tractable_single_tract <- function(df_afq,
                                  tract,
                                  dwi_metric,
                                  participant_id = "subjectID",
@@ -40,7 +40,7 @@ tractable_single_bundle <- function(df_afq,
                                  k = "auto",
                                  family = "auto",
                                  ...) {
-  selected <- select_bundle(
+  selected <- select_tract(
     df_afq = df_afq,
     tract = tract,
     dwi_metric = dwi_metric,

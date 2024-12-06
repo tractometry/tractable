@@ -1,4 +1,4 @@
-#' Select a single bundle from an AFQ dataframe
+#' Select a single tract from an AFQ dataframe
 #'
 #' @param df_afq The input AFQ dataframe
 #' @param tract Abbreviated tract name, e.g., "CST_L" or "OR"
@@ -9,9 +9,9 @@
 #' @param participant_id The name of the column that encodes participant ID
 #' @param group_by The grouping variable used to group nodeID smoothing terms
 #'
-#' @return An AFQ dataframe containing only the selected bundle
+#' @return An AFQ dataframe containing only the selected tract
 #' @export
-select_bundle <- function(df_afq,
+select_tract <- function(df_afq,
                           tract,
                           dwi_metric,
                           covariates,

@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 This vignette demonstrates the use of an AR1 model within a GAM to account for
 autocorrelation of the error terms of the model. We will use data from the
 Sarica dataset [@Sarica2017] to demonstrate the how to include an autocorrelation
-term and its impact on the model statistics. 
+term and its impact on the model statistics.
 
 We start by loading the `tractable` library:
 
@@ -37,15 +37,15 @@ sarica$group <- factor(sarica$class)
 sarica$subjectID <- unclass(factor(sarica$subjectID))
 ```
 
-We will first fit a GAM model without any autocorrelation structure using the 
-`tractable_single_bundle` function. This model will use "group" and "age" to 
+We will first fit a GAM model without any autocorrelation structure using the
+`tractable_single_tract` function. This model will use "group" and "age" to
 predict FA, while smoothing over the tract nodes. We will also use the automated
-procedure implemented in  `tractable_single_bundle` to determine the ideal value
-for `k`, a parameter used to determine the number of spline functions. The default behavior for `tractable_single_bundle` is to include the AR1 model. To avoid this, we set the parameter `autocor` to `FALSE`. 
+procedure implemented in  `tractable_single_tract` to determine the ideal value
+for `k`, a parameter used to determine the number of spline functions. The default behavior for `tractable_single_tract` is to include the AR1 model. To avoid this, we set the parameter `autocor` to `FALSE`.
 
 
 ```{r fit no ac model}
-gam_fit_cst_no_ac <- tractable::tractable_single_bundle(
+gam_fit_cst_no_ac <- tractable::tractable_single_tract(
   df_afq         = sarica,
   tract          = "Right Corticospinal",
   participant_id = "subjectID",
@@ -67,25 +67,25 @@ In addition, we see that there is a statistically significant effect of group
 summary(gam_fit_cst_no_ac)
 ```
 
-To account for potential spatial autocorrelation of FA values along the length 
+To account for potential spatial autocorrelation of FA values along the length
 of the tract profile, we can incorporate a AR1 model into our GAM. Briefly, this
-AR1 model is a linear model that estimates the amount of influence of the FA value of the preceding node on the FA value of the current node (see [@VanRij2019](https://journals.sagepub.com/doi/pdf/10.1177/2331216519832483) for an overview of accounting for autocorrelation using the `mgcv` package). 
+AR1 model is a linear model that estimates the amount of influence of the FA value of the preceding node on the FA value of the current node (see [@VanRij2019](https://journals.sagepub.com/doi/pdf/10.1177/2331216519832483) for an overview of accounting for autocorrelation using the `mgcv` package).
 
-The AR1 model takes a parameter $\rho$ to estimate autocorrelation effects. We 
-can pass our initial model into the function `itsadug::start_value_rho` to 
+The AR1 model takes a parameter $\rho$ to estimate autocorrelation effects. We
+can pass our initial model into the function `itsadug::start_value_rho` to
 automatically determine the value of $\rho$. We can also plot the autocorrelation
-by setting `plot=TRUE` within that function (pictured below). 
+by setting `plot=TRUE` within that function (pictured below).
 
 ```{r calculate rho}
 rho = itsadug::start_value_rho(gam_fit_cst_no_ac)
 itsadug::start_value_rho(gam_fit_cst_no_ac, plot=T)
 ```
 
-By default, the `tractable_single_bundle` function will determine the value of 
-$\rho$ and incorporate the AR1 model into the GAM estimation. 
+By default, the `tractable_single_tract` function will determine the value of
+$\rho$ and incorporate the AR1 model into the GAM estimation.
 
 ```{r fit model including AR structure}
-gam_fit_cst <- tractable::tractable_single_bundle(
+gam_fit_cst <- tractable::tractable_single_tract(
   df_afq         = sarica,
   tract          = "Right Corticospinal",
   participant_id = "subjectID",
@@ -97,9 +97,9 @@ gam_fit_cst <- tractable::tractable_single_bundle(
 ```
 
 Examining the summary of the resulting GAM fit object shows us that the inclusion
-of the AR1 model changes the resulting statistics of our model. Although there 
+of the AR1 model changes the resulting statistics of our model. Although there
 is still a statistically significant effect of group (p=0.044), the value of the
-t-statistic on this term has changed from 6.243 to 2.015. 
+t-statistic on this term has changed from 6.243 to 2.015.
 
 ```{r summarise AR model}
 summary(gam_fit_cst)

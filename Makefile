@@ -16,7 +16,7 @@ docs:
 	Rscript -e "devtools::build_readme()"
 
 examples:
-	Rscript -e "devtools::build_rmd('vignettes/tractable-single-bundle.Rmd')"
+	Rscript -e "devtools::build_rmd('vignettes/tractable-single-tract.Rmd')"
 	Rscript -e "devtools::build_rmd('vignettes/changing-k.Rmd')"
 
 clean:

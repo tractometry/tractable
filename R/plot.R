@@ -282,16 +282,16 @@ spline_diff <- function(gam_model,
 }
 
 
-#' Plot tract profiles for each bundle as a facet and each metric as a figure.
+#' Plot tract profiles for each tract as a facet and each metric as a figure.
 #'
 #' @param df Data frame.
 #' @param metrics Name(s) of the metrics to plot per figure, character vector.
 #'          By default, will be all diffusion metrics in the provided data frame.
-#' @param bundles Name(s) of the tract bundles to plot per facet, character
-#'          vector. By default, will be all tract bundles in the provided data
+#' @param tracts Name(s) of the tract to plot per facet, character
+#'          vector. By default, will be all tracts in the provided data
 #'          frame.
-#' @param bundles_col Name of the column in the provided data frame with the
-#'          tract bundles.
+#' @param tracts_col Name of the column in the provided data frame with the
+#'          tract.
 #' @param group_col Name of the column in the data frame to group by as a color,
 #'          character. By default, no grouping variable is provided.
 #' @param line_func Line function that provides the line positioning. See
@@ -316,7 +316,7 @@ spline_diff <- function(gam_model,
 #'plot_tract_profiles(
 #'   df,
 #'   metrics = c("fa"),
-#'   bundles = c("Left Corticospinal", "Right Corticospinal"),
+#'   tracts = c("Left Corticospinal", "Right Corticospinal"),
 #'   group_col = "class",
 #'   figsize   = c(8, 6)
 #')
@@ -324,7 +324,7 @@ spline_diff <- function(gam_model,
 #'plot_tract_profiles(
 #'   df,
 #'   metrics = c("fa"),
-#'   bundles = c("Left Corticospinal", "Right Corticospinal"),
+#'   tracts = c("Left Corticospinal", "Right Corticospinal"),
 #'   group_col = "age",
 #'   n_groups  = 3,
 #'   pal_name  = "Spectral",
@@ -334,8 +334,8 @@ spline_diff <- function(gam_model,
 plot_tract_profiles <- function (
     df,
     metrics      = NULL,
-    bundles      = NULL,
-    bundles_col  = "tractID",
+    tracts      = NULL,
+    tracts_col  = "tractID",
     group_col    = NULL,
     line_func    = "mean",
     linewidth    = 1,
@@ -354,8 +354,8 @@ plot_tract_profiles <- function (
     metrics <- metrics[indx]
   }
 
-  if (is.null(bundles)) {
-    bundles <- unique(df[[bundles_col]])
+  if (is.null(tracts)) {
+    tracts <- unique(df[[tracts_col]])
   }
 
   if (is.null(group_col)) {
@@ -374,8 +374,8 @@ plot_tract_profiles <- function (
   # prepare data.frame for plotting
   plot_df <- df %>%
     tidyr::pivot_longer(cols = tidyselect::all_of(metrics), names_to = "metric") %>%
-    dplyr::rename(tracts = tidyselect::all_of(bundles_col)) %>%
-    dplyr::filter(tracts %in% bundles, metric %in% metrics)
+    dplyr::rename(tracts = tidyselect::all_of(tracts_col)) %>%
+    dplyr::filter(tracts %in% tracts, metric %in% metrics)
 
   # factorized grouping variable, split into groups if numeric
   if (is.numeric(plot_df[[group_col]])) {
