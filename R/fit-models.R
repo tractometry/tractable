@@ -12,28 +12,31 @@
 #'                        the participant random effect. This list can also 
 #'                        include smoothing terms. Default: NULL.
 #' @param node_k          The basis dimensions used to represent the node 
-#'                        smoother. Default: 3. 
-#' @param node_col        The name of the column that encode node ID. 
+#'                        smoother. If `node_group`, the basis value is applied
+#'                        to the group as well. Default: 10. 
+#' @param node_col        The column name that encodes tract node positions.
 #'                        Default: "nodeID".
-#' @param participant_col The name of the column that encodes participant ID.
-#'                        Default: "participantID"
+#' @param node_group      The column name to group the tract node smooth by.
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID".
 #'
 #' @return A GAM formula string.
 #' @export
 #'
 #' @examples
 #' formula <- build_formula(target = "dti_fa",
-#'                          regressors = c("group", "sex"),
 #'                          node_k = 40)
 #' 
 #' formula <- build_formula(target = "dki_md",
-#'                          regressors = c("group", "sex", "s(age, by = sex)"),
-#'                          node_k = 32)
+#'                          regressors = c("group", "sex"), 
+#'                          node_k = 32, 
+#'                          node_group = "group")
 build_formula <- function(
   target, 
   regressors = NULL, 
-  node_k = 3, 
+  node_k = 10, 
   node_col = "nodeID", 
+  node_group = NULL, 
   participant_col = "subjectID"
 ) {
   # argument input control
@@ -45,11 +48,20 @@ build_formula <- function(
   stopifnot("`node_k` must be a numeric" = is.numeric(node_k))
   stopifnot("`node_k` must be a integer value" = (node_k %% 1) == 0)
   stopifnot("`node_col` must be a character" = is.character(node_col))
+  if (!is.null(node_group)) {
+    stopifnot("`node_group` must be a character" = is.character(node_group))
+    stopifnot("There can be only one `node_group`" = length(node_group) == 1)
+  }
   stopifnot("`participant_col` must be a character" = 
     is.character(participant_col))
 
-  # define node smooth term
-  node_smoother <- sprintf("s(%s, k = %d)", node_col, node_k)
+  # define node smooth term (with or without group)
+  if (!is.null(node_group)) {
+    node_smoother <- sprintf("s(%s, by = %s, k = %d)", 
+      node_col, node_group, node_k)
+  } else {
+    node_smoother <- sprintf("s(%s, k = %d)", node_col, node_k)
+  }
 
   # define random effects (intercept) of participant
   participant_random_effect <- sprintf("s(%s, bs = 're')", participant_col)
