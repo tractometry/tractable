@@ -2,44 +2,48 @@
 % Please edit documentation in R/fit-models.R
 \name{build_formula}
 \alias{build_formula}
-\title{Build a GAM formula dynamically}
+\title{Build a GAM formula.}
 \usage{
 build_formula(
   target,
-  covariates,
-  smooth_terms = NULL,
-  group_by = "group",
-  participant_id = "subjectID",
-  k
+  regressors = NULL,
+  node_k = 3,
+  node_col = "nodeID",
+  participant_col = "subjectID"
 )
 }
 \arguments{
-\item{target}{Diffusion metric to model}
+\item{target}{The column name that encodes the metric to model.}
 
-\item{covariates}{List of strings of GAM covariates, not including
-the smoothing terms over nodes and the random effect due to subjectID.
-This list can also include smoothing terms.}
+\item{regressors}{Column name or list of column names to use as
+regressors, not including nodes smoothing terms and
+the participant random effect. This list can also
+include smoothing terms. Default: NULL.}
 
-\item{smooth_terms}{Smoothing terms, not including
-the smoothing terms over nodes and the random effect due to subjectID.}
+\item{node_k}{The basis dimensions used to represent the node
+smoother. Default: 3.}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms}
+\item{node_col}{The name of the column that encode node ID.
+Default: "nodeID".}
 
-\item{participant_id}{The name of the column that encodes participant ID}
-
-\item{k}{Dimension of the basis used to represent the node smoothing term}
+\item{participant_col}{The name of the column that encodes participant ID.
+Default: "participantID"}
 }
 \value{
-A GAM formula
+A GAM formula string.
 }
 \description{
-Build a GAM formula dynamically
+Function used to build a generic GAM formula string from the given arguments.
+The function automatically includes a tract node smoothing term and a
+participant random effects (random intercept). Any regressor terms are
+inlcuded as additive effects.
 }
 \examples{
 formula <- build_formula(target = "dti_fa",
-                         covariates = c("group", "sex"),
-                         k = 40)
+                         regressors = c("group", "sex"),
+                         node_k = 40)
+
 formula <- build_formula(target = "dki_md",
-                         covariates = c("group", "sex", "s(age, by=sex)"),
-                         k = 32)
+                         regressors = c("group", "sex", "s(age, by = sex)"),
+                         node_k = 32)
 }

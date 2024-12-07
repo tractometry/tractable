@@ -1,3 +1,45 @@
+test_that("build_formula runs as expected", {
+
+  expect_identical(
+    tractable::build_formula(target = "fa"),
+    "fa ~ s(nodeID, k = 3) + s(subjectID, bs = 're')"
+  )
+
+  expect_identical(
+    tractable::build_formula(target = "fa", node_k = 15, node_col = "x", 
+                             participant_col = "participant_id"),
+    "fa ~ s(x, k = 15) + s(participant_id, bs = 're')"
+  )
+
+  expect_identical(
+    tractable::build_formula(target = "fa", regressors = "group", 
+                             node_k = 15, node_col = "x", 
+                             participant_col = "participant_id"),
+    "fa ~ group + s(x, k = 15) + s(participant_id, bs = 're')"
+  )
+
+  expect_identical(
+    tractable::build_formula(target = "fa", 
+                             regressors = c("group", "sex"), 
+                             node_k = 15, node_col = "x", 
+                             participant_col = "participant_id"),
+    "fa ~ group + sex + s(x, k = 15) + s(participant_id, bs = 're')"
+  )
+
+  expect_identical(
+    tractable::build_formula(target = "fa", 
+                             regressors = c("group", "sex", "nodeID"), 
+                             node_k = 15), 
+    "fa ~ group + sex + s(nodeID, k = 15) + s(subjectID, bs = 're')"
+  )
+
+  expect_identical(
+    tractable::build_formula(
+      target = "fa", regressors = c("age", "group", "s(age, by = group)")), 
+    "fa ~ age + group + s(age, by = group) + s(nodeID, k = 3) + s(subjectID, bs = 're')"
+  )
+})
+
 test_that("fit_gam runs as expected", {
 
   sarica <- read_afq_sarica()
@@ -17,11 +59,9 @@ test_that("fit_gam runs as expected", {
   tract_names <- selected$tract_names
 
   formula <- tractable::build_formula(
-    "fa",
-    covariates = c("age", "group"),
-    group_by = "group",
-    participant_id = "subjectID",
-    k = 40
+    target = "fa",
+    regressors = c("age", "group"),
+    node_k = 40
   )
 
   # One and only one of "target" and "formula" should be set to non-NULL
@@ -41,8 +81,7 @@ test_that("fit_gam runs as expected", {
                                                 formula = formula))
 
   # Check that formula can be passed as a string
-  string_formula = 'fa ~ age + group + s(nodeID, by = group, k = 40) +
-    s(subjectID, bs = "re")'
+  string_formula = "fa ~ age + group + s(nodeID, k = 40) + s(subjectID, bs = 're')"
   gam_fit <- expect_no_error(tractable::fit_gam(df_tract = df_tract,
                                             formula = string_formula))
 

@@ -1,5 +1,11 @@
-#' Build a GAM formula dynamically
-#'
+#' Build a GAM formula.
+#' 
+#' @description
+#' Function used to build a generic GAM formula string from the given arguments. 
+#' The function automatically includes a tract node smoothing term and a 
+#' participant random effects (random intercept). Any regressor terms are 
+#' inlcuded as additive effects.
+#' 
 #' @param target          The column name that encodes the metric to model.
 #' @param regressors      Column name or list of column names to use as 
 #'                        regressors, not including nodes smoothing terms and 
@@ -12,13 +18,14 @@
 #' @param participant_col The name of the column that encodes participant ID.
 #'                        Default: "participantID"
 #'
-#' @return A GAM formula string
+#' @return A GAM formula string.
 #' @export
 #'
 #' @examples
 #' formula <- build_formula(target = "dti_fa",
 #'                          regressors = c("group", "sex"),
 #'                          node_k = 40)
+#' 
 #' formula <- build_formula(target = "dki_md",
 #'                          regressors = c("group", "sex", "s(age, by = sex)"),
 #'                          node_k = 32)
@@ -50,9 +57,7 @@ build_formula <- function(
   # define formula depending on regressors
   if (!is.null(regressors)) { 
     # remove node and participant columns from regressor list
-    regressors <- regressors[!sapply(regressors, function(x) {
-      any(str_detect(x, c(node_col, participant_col)))
-    })]
+    regressors <- regressors[! regressors %in% c(node_col, participant_col)]
 
     # define regressor effect(s) as additive effects ONLY
     regressor_effects <- stringr::str_flatten(regressors, collapse = " + ")
@@ -70,7 +75,7 @@ build_formula <- function(
 }
 
 
-#' Fit a GAM for tract node metrics (e.g. FA, MD)
+#' Fit a GAM for tract node metrics (e.g., FA, MD)
 #'
 #' This function has a series of steps:
 #' \itemize{
