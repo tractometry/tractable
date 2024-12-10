@@ -1,53 +1,93 @@
-#' Build a GAM formula dynamically
+#' Build a GAM formula.
+#' 
+#' @description
+#' Function used to build a generic GAM formula string from the given arguments. 
+#' The function automatically includes a tract node smoothing term and a 
+#' participant random effects (random intercept). Any regressor terms are 
+#' inlcuded as additive effects.
+#' 
+#' @param target          The column name that encodes the metric to model.
+#' @param regressors      Column name or list of column names to use as 
+#'                        regressors, not including nodes smoothing terms and 
+#'                        the participant random effect. This list can also 
+#'                        include smoothing terms. Default: NULL.
+#' @param node_k          The basis dimensions used to represent the node 
+#'                        smoother. If `node_group`, the basis value is applied
+#'                        to the group as well. Default: 10. 
+#' @param node_col        The column name that encodes tract node positions.
+#'                        Default: "nodeID".
+#' @param node_group      The column name to group the tract node smooth by.
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID".
 #'
-#' @param target Diffusion metric to model
-#' @param covariates List of strings of GAM covariates, not including
-#'     the smoothing terms over nodes and the random effect due to subjectID.
-#'     This list can also include smoothing terms.
-#' @param smooth_terms Smoothing terms, not including
-#'     the smoothing terms over nodes and the random effect due to subjectID.
-#' @param group_by The grouping variable used to group nodeID smoothing terms
-#' @param participant_id The name of the column that encodes participant ID
-#' @param k Dimension of the basis used to represent the node smoothing term
-#'
-#' @return A GAM formula
+#' @return A GAM formula string.
 #' @export
 #'
 #' @examples
 #' formula <- build_formula(target = "dti_fa",
-#'                          covariates = c("group", "sex"),
-#'                          k = 40)
+#'                          node_k = 40)
+#' 
 #' formula <- build_formula(target = "dki_md",
-#'                          covariates = c("group", "sex", "s(age, by=sex)"),
-#'                          k = 32)
-build_formula <- function(target, covariates, smooth_terms = NULL,
-                          group_by = "group",
-                          participant_id = "subjectID", k) {
-  if (!is.null(covariates)) {
-    vars <- paste0(covariates, collapse = "+")
+#'                          regressors = c("group", "sex"), 
+#'                          node_k = 32, 
+#'                          node_group = "group")
+build_formula <- function(
+  target, 
+  regressors = NULL, 
+  node_k = 10, 
+  node_col = "nodeID", 
+  node_group = NULL, 
+  participant_col = "subjectID"
+) {
+  # argument input control
+  stopifnot("`target` must be a character" = is.character(target))
+  if (!is.null(regressors)) {
+    stopifnot("`regressors` must be a character or character vector" = 
+    is.character(regressors))
   }
-  if (!is.null(group_by)) {
-    node_smooth <- paste0("s(nodeID, by = ", group_by, ", k=", k, ")")
+  stopifnot("`node_k` must be a numeric" = is.numeric(node_k))
+  stopifnot("`node_k` must be a integer value" = (node_k %% 1) == 0)
+  stopifnot("`node_col` must be a character" = is.character(node_col))
+  if (!is.null(node_group)) {
+    stopifnot("`node_group` must be a character" = is.character(node_group))
+    stopifnot("There can be only one `node_group`" = length(node_group) == 1)
+  }
+  stopifnot("`participant_col` must be a character" = 
+    is.character(participant_col))
+
+  # define node smooth term (with or without group)
+  if (!is.null(node_group)) {
+    node_smoother <- sprintf("s(%s, by = %s, k = %d)", 
+      node_col, node_group, node_k)
   } else {
-    node_smooth <- paste0("s(nodeID, k=", k, ")")
+    node_smoother <- sprintf("s(%s, k = %d)", node_col, node_k)
   }
-  subject_random_effect <- paste0("s(", participant_id, ", bs = \"re\")")
-  if (is.null(covariates)) {
-    after_tilde <- paste0(list(node_smooth, subject_random_effect),
-                          collapse = "+")
+
+  # define random effects (intercept) of participant
+  participant_random_effect <- sprintf("s(%s, bs = 're')", participant_col)
+
+  # define formula depending on regressors
+  if (!is.null(regressors)) { 
+    # remove node and participant columns from regressor list
+    regressors <- regressors[! regressors %in% c(node_col, participant_col)]
+
+    # define regressor effect(s) as additive effects ONLY
+    regressor_effects <- stringr::str_flatten(regressors, collapse = " + ")
+
+    # define formula string with regressor effect(s)
+    formula_string <- sprintf("%s ~ %s + %s + %s", target, regressor_effects, 
+      node_smoother, participant_random_effect)
   } else {
-    after_tilde <- paste0(list(vars, node_smooth, subject_random_effect),
-                          collapse = "+")
+    # define formula string without regressor effect(s)
+    formula_string <- sprintf("%s ~ %s + %s", target, node_smoother, 
+      participant_random_effect)
   }
-  if (!is.null(smooth_terms)) {
-    after_tilde <- paste0(list(after_tilde, smooth_terms), collapse = "+")
-  }
-  dyn_string <- paste0(target, " ~ ", after_tilde)
-  return(dyn_string)
+  
+  return(formula_string)
 }
 
 
-#' Fit a GAM for tract node metrics (e.g. FA, MD)
+#' Fit a GAM for tract node metrics (e.g., FA, MD)
 #'
 #' This function has a series of steps:
 #' \itemize{
