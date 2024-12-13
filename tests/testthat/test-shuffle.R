@@ -1,3 +1,5 @@
+library(testthat)
+
 test_that("shuffle_df shuffles an afq dataframe", {
   df_afq <- read.csv("afq_12_rows.csv")
 

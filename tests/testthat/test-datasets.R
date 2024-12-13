@@ -1,5 +1,7 @@
+library(testthat)
+
 test_that("read_afq_sarica loads the sarica dataset", {
-  df_sarica <- read_afq_sarica()
+  df_sarica <- tractable::read_afq_sarica()
 
   expect_equal(nrow(df_sarica), 96000)
   expect_equal(ncol(df_sarica), 8)
@@ -7,7 +9,7 @@ test_that("read_afq_sarica loads the sarica dataset", {
 })
 
 test_that("read_afq_weston_havens loads the WH dataset", {
-  df_hbn <- read_afq_weston_havens()
+  df_hbn <- tractable::read_afq_weston_havens()
 
   expect_equal(nrow(df_hbn), 154000)
   expect_equal(ncol(df_hbn), 8)
@@ -24,7 +26,7 @@ test_that("read_afq_hbn loads the HBN dataset", {
 
 test_that("read_afq_files returns an unsupervised dataset when pheno_csv is NULL", {
   nodes_url <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/nodes.csv"
-  df <- read_afq_files(nodes_csv   = nodes_url,
+  df <- tractable::read_afq_files(nodes_csv   = nodes_url,
                        dwi_metrics = c("fa", "md"),
                        pheno_cols  = c("age", "class", "gender"))
 

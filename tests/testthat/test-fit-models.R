@@ -1,10 +1,12 @@
-test_that("fit_gam runs as expected", {
+library(testthat)
 
-  sarica <- read_afq_sarica()
+testthat::test_that("fit_gam runs as expected", {
+
+  sarica <- tractable::read_afq_sarica()
   sarica$group <- factor(sarica$class)
   sarica$subjectID <- unclass(factor(sarica$subjectID))
 
-  selected <- select_bundle(
+  selected <- tractable::select_bundle(
     df_afq = sarica,
     tract = "Right Corticospinal",
     dwi_metric = "fa",
