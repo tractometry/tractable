@@ -1,4 +1,7 @@
-test_that("fit_gam runs as expected", {
+library(testthat)
+library(tractable)
+
+testthat::test_that("fit_gam runs as expected", {
 
   sarica <- read_afq_sarica()
   sarica$group <- factor(sarica$class)
