@@ -86,129 +86,149 @@ build_formula <- function(
   return(formula_string)
 }
 
-#' Estimate smoothing parameter (k) for smoothing terms
-#' 
-#' This function
-#' @param name description
-#' @param name description
-#' 
 
 #' Fit a GAM for tract node metrics (e.g., FA, MD)
 #'
-#' This function has a series of steps:
-#' \itemize{
-#'   \item If family == "auto", choose the distribution (either beta or gamma)
-#'      that has the lowest AIC when fitting to the dMRI metric data
-#'   \item If k == "auto", build an initial GAM model with k = 16 and
-#'      continue to double the k value until gam.check shows that k is
-#'      large enough
-#'   \item Fit a GAM model such that: \cr \cr
-#'      target ~ covariates +
-#'               s(nodeID, by=group, k = k_value) +
-#'               s(subjectID, bs = "re")
-#'      \cr
-#'   \item Optionally save the output of gam.check and summary to files.
-#' }
-#'
-#' @param target The diffusion metric to model (e.g. "FA", "MD"). If this is
-#'  set, `formula` must NOT be set.
-#' @param regressors List of strings of GAM regressors, not including
-#'     the smoothing terms over nodes and the random effect due to subjectID.
-#'     If this is set, `formula` must NOT be set.
-#' @param smooth_terms Smoothing terms, not including
-#'     the smoothing terms over nodes and the random effect due to subjectID.
-#'     If this is set, `formula` must NOT be set.
-#' @param node_group The grouping variable used to group nodeID smoothing terms
-#'     If this is set, `formula` must NOT be set.
-#' @param df_tract AFQ Dataframe of node metric values for single tract
-#' @param participant_col The name of the column that encodes participant ID
-#'     If this is set, `formula` must NOT be set.
-#' @param formula Optional explicit formula to use for the GAM. If provided,
-#'     this will override the dynamically generated formula build from the
-#'     target and covariate inputs. Default = NULL. If this is set, all other
-#'     inputs that determine the formula must be set to NULL.
-#' @param node_k Dimension of the basis used to represent the node smoothing term,
-#'     If k = 'auto' (default), this function will attempt to find the best
-#'     value.
-#' @param autocor Whether to account for autocorrelation in the tract profile.
-#'     Default = TRUE.
-#' @param family Distribution to use for the gam. Must be either 'gamma',
-#'     'beta', or 'auto'. If 'auto', this function will select the best fit
-#'     between beta and gamma distributions.
-#' @param method String, fitting method passed to mgcv::bam
-#' @param ... Further keyword arguments passed to mgcv::bam
-#'
+#' @param formula         Explicit formula to use for the GAM.
+#' @param df              The data frame contains GAM metrics.  
+#' @param node_col        The column name that encodes tract node positions.
+#'                        Default: "nodeID".
+#' 
+#' @param target          The column name that encodes the metric to model.
+#' @param regressors      Column name or list of column names to use as 
+#'                        regressors, not including nodes smoothing terms and 
+#'                        the participant random effect. This list can also 
+#'                        include smoothing terms. Default: NULL.
+#' @param node_k          The basis dimensions used to represent the node 
+#'                        smoother. If `node_group`, the basis value is applied
+#'                        to the group as well. Default: 10. 
+#' @param node_group      The column name to group the tract node smooth by
+#'                        (i.e., `s(node_col, by = node_group, k = node_k)``).
+#'                        Default: NULL.
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID".
+#' @param autocor         Whether to account for autocorrelation in the tract 
+#'                        profile with the AR(1) autocorrelation model. 
+#'                        Default: TRUE.
+#' @param family          Name or function of the distribution to use for the 
+#'                        GAM dependent variable.
+#'                        \cr \cr
+#'                        If name, possible values: {'auto', 'beta', 'gamma', 
+#'                        'norm'}. If 'auto', will automatically determine the 
+#'                        distribution of best fit between mgcv::betar ('beta'), 
+#'                        stats::Gamma ('gamma'), or stats::gaussian ('norm').
+#'                        Default: 'auto'
+#'                        \cr \cr
+#'                        See [stats::family()] or [mgcv::family.mgcv()] for 
+#'                        more \code{family} or \code{extended.family} functions.
+#' @param method          GAM fitting method, string; passed to [mgcv::bam()]. 
+#'                        Default: "fREML"
+#' @param discrete        With method = "fREML" it is possible to discretize 
+#'                        covariates for storage and efficiency reasons. See 
+#'                        [mgcv::bam()] for more information. 
+#'                        Default: TRUE
+#' @param ...             Further keyword arguments passed to [mgcv::bam()]
 #' @return Fitted GAM model
-#' @export
+#'
+#' @details
+#' This function has a series of steps:
+#' \enumerate{
+#'   \item If family == "auto", choose the distribution (either 'beta', 'gamma',
+#'         or 'norm') that has the lowest AIC when fitting to the GAM dependent
+#'         variable data using [fitdistrplus::fitdist()].
+#'   \item If node_k == "auto", build an initial GAM model with k = 2 and
+#'      continue to double the k value until gam.check shows that k is
+#'      large enough.
+#'   \item Fit a GAM model according to the formula given or build a formula 
+#'         that follow the below pattern: 
+#'      \cr \cr
+#'      target ~ regressor1 (+ regressor2 + ...) +
+#'               s(node_col, by = node_group, k = node_k) +
+#'               s(participant_col, bs = "re")
+#'      \cr
+#'   \item Optionally, save the output of gam.check and summary to files.
+#' }
 #'
 #' @examples
 #' \dontrun{
 #' df_afq <- read.csv("/path/to/afq/output.csv")
-#' tract <- "CST_L"
-#' df_tract <- df_afq[which(df_afq$tractID == tract), ]
-#' gam_fit <- fit_gam(df_tract,
-#'                    target = "dti_fa",
-#'                    covariates = list("group", "sex"),
-#'                    family = "gamma",
-#'                    k = "auto")
+#' 
+#' df_tract <- df_afq %>% 
+#'   filter(tractID == "CST_L")
+#' 
+#' gam_fit <- fit_gam(
+#'   target = "dti_fa", 
+#'   regressors = c("sex", "group"), 
+#'   df = df_tract, 
+#'   family = "gamma", 
+#'   node_k = "auto"
+#' )
 #' }
-
-# define the s3 method 
+#' @export
 fit_gam <- function(...) {
   UseMethod("fit_gam")
 }
 
+#' @export
 fit_gam.default <- function(
   formula, 
   df, 
-  autocor = TRUE, 
-  family = "auto", 
-  method = "fREML",
+  node_col = "nodeID", 
+  autocor  = TRUE, 
+  family   = "auto", 
+  method   = "fREML",
   discrete = TRUE, 
   ...
 ) {
   # argument input control
-  stopifnot("`autocor` must be a logical" = is.logical(autocor))
+  stopifnot("`formula` must be a class formulas" = class(formula) == "formula")
   stopifnot("`df` must be a class data.frame or tibble" = 
     any(class(df) %in% c("data.frame", "tbl_df")))
+  stopifnot("`node_col` must be a character" = is.character(node_col))
+  stopifnot("`autocor` must be a logical" = is.logical(autocor))
   if (is.character(family)) { family <- stringr::str_to_lower(family) }
   stopifnot("`family` must be a recognized family (auto, gamma, beta) or a family class function" = 
-    any(family %in% c("auto", "gamma", "beta")) || 
+    any(family %in% c("auto", "gamma", "beta", "norm")) || 
     any(class(family) %in% c("family", "extended.family")))
-
-  # if determining linkfamily function 
-  if (family == "auto") {
-    values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
-    distr_aic <- sapply(c("beta", "gamma", "norm"), 
-      function(x) fitdistrplus::fitdist(values, x)$aic)
-    family <- names(distr_aic)[which.min(distr_aic)]
-  } 
+  stopifnot("`method` must be a recognized method" = 
+    any(method %in% c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")))
+  stopifnot("`discrete` must be a logical" = is.logical(discrete))
   
   # define GAM linkfamily function
-  if (family == "beta") {
-    linkfamily <- mgcv::betar(link = "logit")
-  } else if (family == "gamma") {
-    linkfamily <- stats::Gamma(link = "logit")
-  } else if (family == "gaussian" || family == "norm" ) {
-    linkfamily <- stats::gaussian(link = "identity")
+  if (is.character(family)) {
+    # if automatically determining linkfamily function 
+    if (family == "auto") {
+      values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
+      distr_aic <- sapply(c("beta", "gamma", "norm"), 
+        function(x) fitdistrplus::fitdist(values, x)$aic)
+      family <- names(distr_aic)[which.min(distr_aic)]
+    }
+    # set linkfamily based on family character
+    if (family == "beta") {
+      linkfamily <- mgcv::betar(link = "logit")
+    } else if (family == "gamma") {
+      linkfamily <- stats::Gamma(link = "logit")
+    } else if (family == "gaussian" || family == "norm" ) {
+      linkfamily <- stats::gaussian(link = "identity")
+    }
   } else { # family function provided
     linkfamily <- family
   }
 
   if (autocor) {
     # define AR1.start as first nodeID position
-    df <- df %>% dplyr::mutate(ar_start = nodeID == 0)
+    df$ar_start <- df[[node_col]] == 0
 
     # fit GAM model without autocorrelation 
     gam_fit_wo_rho <- mgcv::bam(
-      formula = formula,
-      family = linkfamily, 
-      data = df, 
-      method = method, 
-      rho = 0, 
+      formula  = formula, 
+      family   = linkfamily, 
+      data     = df, 
+      method   = method, 
+      rho      = 0, 
       AR.start = ar_start, 
       discrete = discrete, 
-      ... = ...
+      ...      = ...
     )
 
     # determine autocorrelation parameter, rho
@@ -216,34 +236,55 @@ fit_gam.default <- function(
 
     # fit GAM model with autocorrelation 
     gam_fit <- mgcv::bam(
-      formula = formula,
-      family = linkfamily, 
-      data = df, 
-      method = method, 
-      rho = rho, 
+      formula  = formula, 
+      family   = linkfamily, 
+      data     = df, 
+      method   = method, 
+      rho      = 0, 
       AR.start = ar_start, 
       discrete = discrete, 
-      ... = ...
+      ...      = ...
     )
   } else {
     # fit GAM model 
     gam_fit <- mgcv::bam(
-      formula = formula,
-      family = linkfamily, 
-      data = data, 
-      method = method, 
+      formula  = formula,
+      family   = linkfamily, 
+      data     = data, 
+      method   = method, 
       discrete = discrete, 
-      ... = ...
+      ...      = ...
     )
   }
 
   return(gam_fit)
 }
 
-fit_gam.formula <- function(...) {
-  fit_gam.default(...)
+#' @rdname fit_gam
+#' @export
+fit_gam.formula <- function(
+  formula, 
+  df, 
+  node_col = "nodeID", 
+  autocor  = TRUE, 
+  family   = "auto", 
+  method   = "fREML",
+  discrete = TRUE, 
+  ...
+) {
+  fit_gam.default(
+    formula  = formula, 
+    df       = df, 
+    autocor  = autocor, 
+    family   = family, 
+    method   = method, 
+    discrete = discrete, 
+    ...      = ...
+  )
 }
 
+#' @rdname fit_gam
+#' @export
 fit_gam.character <- function(
   target, 
   df, 
@@ -270,62 +311,16 @@ fit_gam.character <- function(
 
   # call default fit_gam() method
   fit_gam.default(
-    formula  = as.formula(formula), 
+    formula  = as.formula(formula, env = .GlobalEnv),
     df       = df, 
     autocor  = autocor, 
     family   = family, 
     method   = method,
     discrete = discrete, 
+    ...      = ...
   )
 }
 
-
-# fit_gam <- function(
-#   df_tract,
-#   target = NULL,
-#   regressors = NULL,
-#   smooth_terms = NULL,
-#   participant_id = NULL,
-#   formula = NULL,
-#   node_k = NULL,
-#   autocor = TRUE,
-#   family = "auto",
-#   method = "fREML",
-#   ...
-# ) {
-#   # Check that if formula is non-NULL, all the other formula-setting inputs
-#   # are null
-#   if (!is.null(formula)) {
-#     if (!(is.null(target) &&
-#           is.null(covariates) &&
-#           is.null(smooth_terms) &&
-#           is.null(group_by) &&
-#           is.null(k))) {
-#     stop(
-#     "If `formula` is provided no other formula-setting input may be provided")
-#     } else{
-#       # If it's a string input, we'll cast it into a formula
-#     if (is.character(formula) & length(formula) == 1) {
-#       formula <- as.formula(formula)
-#     }
-#     # Get the target from the formula for use below
-#     target <- terms(formula)[[2]]
-#   }}
-
-#   # Set other defaults
-#   if (is.null(group_by)) {
-#     group_by <- "group"
-#   }
-#   if (is.null(participant_id)) {
-#     participant_id <- "subjectID"
-#   }
-
-#   if (is.null(k)) {
-#     k <- "auto"
-#   }
-
-
-#   if (is.null(formula)) {
 #     if (k == "auto") {
 #       # Initial k value. This will be multiplied by 2 in the while loop
 #       k_model <- 4

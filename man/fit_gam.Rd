@@ -2,78 +2,111 @@
 % Please edit documentation in R/fit-models.R
 \name{fit_gam}
 \alias{fit_gam}
-\title{Fit a GAM for tract node metrics (e.g. FA, MD)}
+\alias{fit_gam.formula}
+\alias{fit_gam.character}
+\title{Fit a GAM for tract node metrics (e.g., FA, MD)}
 \usage{
-fit_gam(
-  df_tract,
-  target = NULL,
-  covariates = NULL,
-  smooth_terms = NULL,
-  group_by = NULL,
-  participant_id = NULL,
-  formula = NULL,
-  k = NULL,
+fit_gam(...)
+
+\method{fit_gam}{formula}(
+  formula,
+  df,
+  node_col = "nodeID",
   autocor = TRUE,
   family = "auto",
   method = "fREML",
+  discrete = TRUE,
+  ...
+)
+
+\method{fit_gam}{character}(
+  target,
+  df,
+  regressors = NULL,
+  node_k = 10,
+  node_col = "nodeID",
+  node_group = NULL,
+  participant_col = "subjectID",
+  autocor = TRUE,
+  family = "auto",
+  method = "fREML",
+  discrete = TRUE,
   ...
 )
 }
 \arguments{
-\item{df_tract}{AFQ Dataframe of node metric values for single tract}
+\item{...}{Further keyword arguments passed to \code{\link[mgcv:bam]{mgcv::bam()}}}
 
-\item{target}{The diffusion metric to model (e.g. "FA", "MD"). If this is
-set, \code{formula} must NOT be set.}
+\item{formula}{Explicit formula to use for the GAM.}
 
-\item{covariates}{List of strings of GAM covariates, not including
-the smoothing terms over nodes and the random effect due to subjectID.
-If this is set, \code{formula} must NOT be set.}
+\item{df}{The data frame contains GAM metrics.}
 
-\item{smooth_terms}{Smoothing terms, not including
-the smoothing terms over nodes and the random effect due to subjectID.
-If this is set, \code{formula} must NOT be set.}
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID".}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms
-If this is set, \code{formula} must NOT be set.}
+\item{autocor}{Whether to account for autocorrelation in the tract
+profile with the AR(1) autocorrelation model.
+Default: TRUE.}
 
-\item{participant_id}{The name of the column that encodes participant ID
-If this is set, \code{formula} must NOT be set.}
+\item{family}{Name or function of the distribution to use for the
+GAM dependent variable.
+\cr \cr
+If name, possible values: {'auto', 'beta', 'gamma',
+'norm'}. If 'auto', will automatically determine the
+distribution of best fit between mgcv::betar ('beta'),
+stats::Gamma ('gamma'), or stats::gaussian ('norm').
+Default: 'auto'
+\cr \cr
+See \code{\link[stats:family]{stats::family()}} or \code{\link[mgcv:family.mgcv]{mgcv::family.mgcv()}} for
+more \code{family} or \code{extended.family} functions.}
 
-\item{formula}{Optional explicit formula to use for the GAM. If provided,
-this will override the dynamically generated formula build from the
-target and covariate inputs. Default = NULL. If this is set, all other
-inputs that determine the formula must be set to NULL.}
+\item{method}{GAM fitting method, string; passed to \code{\link[mgcv:bam]{mgcv::bam()}}.
+Default: "fREML"}
 
-\item{k}{Dimension of the basis used to represent the node smoothing term,
-If k = 'auto' (default), this function will attempt to find the best
-value.}
+\item{discrete}{With method = "fREML" it is possible to discretize
+covariates for storage and efficiency reasons. See
+\code{\link[mgcv:bam]{mgcv::bam()}} for more information.
+Default: TRUE}
 
-\item{autocor}{Whether to account for autocorrelation in the tract profile.
-Default = TRUE.}
+\item{target}{The column name that encodes the metric to model.}
 
-\item{family}{Distribution to use for the gam. Must be either 'gamma',
-'beta', or 'auto'. If 'auto', this function will select the best fit
-between beta and gamma distributions.}
+\item{regressors}{Column name or list of column names to use as
+regressors, not including nodes smoothing terms and
+the participant random effect. This list can also
+include smoothing terms. Default: NULL.}
 
-\item{method}{String, fitting method passed to mgcv::bam}
+\item{node_k}{The basis dimensions used to represent the node
+smoother. If \code{node_group}, the basis value is applied
+to the group as well. Default: 10.}
 
-\item{...}{Further keyword arguments passed to mgcv::bam}
+\item{node_group}{The column name to group the tract node smooth by
+(i.e., `s(node_col, by = node_group, k = node_k)``).
+Default: NULL.}
+
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
 }
 \value{
 Fitted GAM model
 }
 \description{
+Fit a GAM for tract node metrics (e.g., FA, MD)
+}
+\details{
 This function has a series of steps:
-\itemize{
-\item If family == "auto", choose the distribution (either beta or gamma)
-that has the lowest AIC when fitting to the dMRI metric data
-\item If k == "auto", build an initial GAM model with k = 16 and
+\enumerate{
+\item If family == "auto", choose the distribution (either 'beta', 'gamma',
+or 'norm') that has the lowest AIC when fitting to the GAM dependent
+variable data using \code{\link[fitdistrplus:fitdist]{fitdistrplus::fitdist()}}.
+\item If node_k == "auto", build an initial GAM model with k = 2 and
 continue to double the k value until gam.check shows that k is
-large enough
-\item Fit a GAM model such that: \cr \cr
-target ~ covariates +
-s(nodeID, by=group, k = k_value) +
-s(subjectID, bs = "re")
+large enough.
+\item Fit a GAM model according to the formula given or build a formula
+that follow the below pattern:
+\cr \cr
+target ~ regressor1 (+ regressor2 + ...) +
+s(node_col, by = node_group, k = node_k) +
+s(participant_col, bs = "re")
 \cr
 \item Optionally save the output of gam.check and summary to files.
 }
@@ -81,12 +114,16 @@ s(subjectID, bs = "re")
 \examples{
 \dontrun{
 df_afq <- read.csv("/path/to/afq/output.csv")
-tract <- "CST_L"
-df_tract <- df_afq[which(df_afq$tractID == tract), ]
-gam_fit <- fit_gam(df_tract,
-                   target = "dti_fa",
-                   covariates = list("group", "sex"),
-                   family = "gamma",
-                   k = "auto")
+
+df_tract <- df_afq \%>\% 
+  filter(tractID == "CST_L")
+
+gam_fit <- fit_gam(
+  target = "dti_fa", 
+  regressors = c("sex", "group"), 
+  df = df_tract, 
+  family = "gamma", 
+  node_k = "auto"
+)
 }
 }

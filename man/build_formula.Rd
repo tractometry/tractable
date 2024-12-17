@@ -7,8 +7,9 @@
 build_formula(
   target,
   regressors = NULL,
-  node_k = 3,
   node_col = "nodeID",
+  node_k = 10,
+  node_group = NULL,
   participant_col = "subjectID"
 )
 }
@@ -20,30 +21,33 @@ regressors, not including nodes smoothing terms and
 the participant random effect. This list can also
 include smoothing terms. Default: NULL.}
 
-\item{node_k}{The basis dimensions used to represent the node
-smoother. Default: 3.}
-
-\item{node_col}{The name of the column that encode node ID.
+\item{node_col}{The column name that encodes tract node positions.
 Default: "nodeID".}
 
-\item{participant_col}{The name of the column that encodes participant ID.
-Default: "participantID"}
+\item{node_k}{The basis dimensions used to represent the node
+smoother. If \code{node_group}, the basis value is applied
+to the group as well. Default: 10.}
+
+\item{node_group}{The column name to group the tract node smooth by.
+Default: NULL.}
+
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
 }
 \value{
 A GAM formula string.
 }
 \description{
 Function used to build a generic GAM formula string from the given arguments.
-The function automatically includes a tract node smoothing term and a
-participant random effects (random intercept). Any regressor terms are
-inlcuded as additive effects.
+The function automatically includes a tract node smoothing term (with or
+without a grouping term) and a participant random effects (random intercept).
+Any regressor terms are included as additive effects.
 }
 \examples{
-formula <- build_formula(target = "dti_fa",
-                         regressors = c("group", "sex"),
-                         node_k = 40)
+formula <- build_formula(target = "dti_fa", node_k = 40)
 
 formula <- build_formula(target = "dki_md",
-                         regressors = c("group", "sex", "s(age, by = sex)"),
-                         node_k = 32)
+                         regressors = c("group", "sex"), 
+                         node_k = 32, 
+                         node_group = "group")
 }
