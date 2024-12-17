@@ -22,7 +22,6 @@
 #'                        Default: "subjectID".
 #'
 #' @return A GAM formula string.
-#' @export
 #'
 #' @examples
 #' formula <- build_formula(target = "dti_fa", node_k = 40)
@@ -31,6 +30,7 @@
 #'                          regressors = c("group", "sex"), 
 #'                          node_k = 32, 
 #'                          node_group = "group")
+#' @export
 build_formula <- function(
   target, 
   regressors = NULL, 
@@ -86,14 +86,66 @@ build_formula <- function(
   return(formula_string)
 }
 
+#' Estimate distribution function. 
+#' 
+#' @param x           A numeric vector that will be evaluated. 
+#' @param distr_names A vector of distribution names to evaluate the values. \cr
+#'                    Possible options: ('beta', 'gamma', 'norm') \cr
+#'                    Default: c("beta", "gamma", "norm")
+#' @param eval_metric The distribution evaluation metric names. \cr
+#'                    Possible options: ('aic', 'bic', 'loglik') \cr
+#'                    Default: "aic"
+#' @details
+#' See [fitdistrplus::fitdist()] for additional information.
+#' 
+#' @return The best fitting family function to the values. 
+#' 
+#' @examples
+#' x <- rnorm(1000)
+#' estimate_distribution(x)
+#' 
+#' x <- rgamma(1000, shape = 12)
+#' estimate_distribution(x)
+#' @export
 estimate_distribution <- function(
-  x, distr = c("beta", "gamma", "norm"), eval_metric = "aic"
+  x, 
+  distr_names = c("beta", "gamma", "norm"),
+  eval_metric = "aic"
 ) {
-  distr_eval <- sapply(distr, 
-    function(d) fitdistrplus::fitdist(x, d)[[eval_metric]])
-  distr_name <- names(distr_eval)[which.min(distr_eval)]
-  return(distr_name)
+  # argument input control 
+  stopifnot("`x` must be a numeric" = is.numeric(x))
+  stopifnot("`distr_names` must be a recognized distribution name" = 
+    is.character(distr_names) && 
+    all(distr_names %in% c("beta", "gamma", "norm")))
+  stopifnot("`eval_metric` must be a recognized evauluation metric" = 
+    is.character(eval_metric) && length(eval_metric) == 1 && 
+    any(eval_metric %in% c("aic", "bic", "loglik")))
+
+  # estimate distribution function based on evaluation metric
+  distr_eval <- sapply(distr_names, function(d) {
+    tryCatch({invisible(utils::capture.output(
+      y <- fitdistrplus::fitdist(x, d)[[eval_metric]]))
+      y
+    }, error = function(conds) {
+      NA_real_
+    })
+  })
+  
+  # determine best distribution based on evaluation metric 
+  eval_func  <- if (eval_metric == "loglik") which.max else which.min
+  best_distr <- names(distr_eval)[eval_func(distr_eval)]
+
+  # based on evaluated distribution, return family function
+  if (best_distr == "beta") {
+    linkfamily <- mgcv::betar(link = "logit")
+  } else if (best_distr == "gamma") {
+    linkfamily <- stats::Gamma(link = "logit")
+  } else if (best_distr == "norm") {
+    linkfamily <- stats::gaussian(link = "identity")
+  }
+  return(linkfamily)
 }
+
 
 #' Estimate smoothing basis dimensions for GAM smoothers.
 #' 
@@ -107,11 +159,21 @@ estimate_distribution <- function(
 #' @param family          The family
 #' @return description
 #' @export 
+estimate_smooth_basis <- function(...) {
+  getMethod("estimate_smooth_basis")
+}
+  
 estimate_smooth_basis <- function(
   target, 
   df, 
   regressors = NULL, 
   family = "auto", 
+  k_start = 1, 
+  k_end   = 50, 
+  k_step  = 1, 
+  bs      = "tp", 
+  kindex_thr = 0.95, 
+  pvalue_thr = 0.05, 
   ...
 ) {
   # input argument control 
@@ -131,12 +193,12 @@ estimate_smooth_basis <- function(
   all(term_names %in% names(df))
 
   default_args <- list(
-    k_start = 1, 
-    k_end = 50, 
-    k_step = 1, 
-    bs = "tp", 
-    k_index = 0.5, 
-    p_value_thr = 0.05
+    k_start = k_start, 
+    k_end = k_end, 
+    k_step = k_step, 
+    bs = bs, 
+    kindex_thr = kindex_thr, 
+    pvalue_thr = pvalue_thr
   )
   
   df_k <- tibble::tibble() # initialize results
@@ -149,13 +211,16 @@ estimate_smooth_basis <- function(
     k_index <- 0.0
     p_value <- 1.0
     curr_k <- curr_args$k_start
-    while (threshold_has_not_been_reached) {
+    while (k_index >= kindex_thr && p_value > pvalue_thr) {
+
       curr_smooth <- sprintf("s(%s, k = %d)", curr_term, curr_k)
 
+          # define current formula
       formula <- sprintf("%s ~ %s + %s", target, 
         stringr::str_c(regressors, sep = " + "), curr_smooth)
-      
-      model_fit <- mgcv::bam(
+
+    # fit current model with all covariates
+      curr_model <- mgcv::bam(
         formula = as.formula(formula, env = .GlobalEnv), 
         df = df, 
         family = linkfamily, 
@@ -163,9 +228,13 @@ estimate_smooth_basis <- function(
         discrete = discrete
       )
 
-      k_check <- mgcv::k.check(model_fit)
-      k_index <- stats::na.omit(kcheck[, "k-index"])
-      p_value <- stats::na.omit(k_check[, "p-value"])
+    # call k.check on model metrics
+    k_check <- k.check(curr_model)
+
+    # collect k.check metrics for all smooth coefficients
+    smooth_term <- sprintf("s(%s)", curr_kvar)
+    curr_kspace$k_index[i2] <- k_check[smooth_term, "k-index"]
+    curr_kspace$p_value[i2] <- k_check[smooth_term, "p-value"]
     }
 
     # collect term, k, k-index, and p-value
@@ -183,8 +252,8 @@ estimate_smooth_basis <- function(
     } else {
       df_k <- df_k %>% tibble::add_row(curr_row)
     }
-    
-  }
+     }
+     
 }
 
 
@@ -207,7 +276,7 @@ estimate_smooth_basis <- function(
 #'                        smoother. If `node_group`, the basis value is applied
 #'                        to the group as well. Default: 'auto'. 
 #' @param node_group      The column name to group the tract node smooth by
-#'                        (i.e., `s(node_col, by = node_group, k = node_k)``).
+#'                        (i.e., `s(node_col, by = node_group, k = node_k)`).
 #'                        Default: NULL.
 #' @param participant_col The column name that encodes participant ID.
 #'                        Default: "subjectID".
@@ -217,8 +286,8 @@ estimate_smooth_basis <- function(
 #' @param family          Name or function of the distribution to use for the 
 #'                        GAM dependent variable.
 #'                        \cr \cr
-#'                        If name, possible values: {'auto', 'beta', 'gamma', 
-#'                        'norm'}. If 'auto', will automatically determine the 
+#'                        If name, possible values: ('auto', 'beta', 'gamma', 
+#'                        'norm'). If 'auto', will automatically determine the 
 #'                        distribution of best fit between mgcv::betar ('beta'), 
 #'                        stats::Gamma ('gamma'), or stats::gaussian ('norm').
 #'                        Default: 'auto'
@@ -372,12 +441,12 @@ fit_gam.formula <- function(
   # if automatically determining linkfamily function 
   if (family == "auto") {
     values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
-    family <- estimate_distribution(values, 
-      distr = c("beta", "gamma", "norm"))
+    family <- tractable::estimate_distribution(values, 
+      distr_names = c("beta", "gamma", "norm"))
   }
 
   # call fit_gam.default
-  fit_gam.default(
+  tractable::fit_gam.default(
     formula  = formula, 
     df       = df, 
     autocor  = autocor, 
@@ -402,12 +471,12 @@ fit_gam.character <- function(
   family = "auto", 
   method = "fREML",
   discrete = TRUE, 
-  ... = ...
+  ...
 ) {
   # if automatically determining linkfamily function 
   if (family == "auto") {
-    family <- estimate_distribution(df[[target]], 
-      distr = c("beta", "gamma", "norm"))
+    family <- tractable::estimate_distribution(df[[target]], 
+      distr_names = c("beta", "gamma", "norm"))
   }
 
   # use build formula to create formula string
@@ -421,7 +490,7 @@ fit_gam.character <- function(
   )
 
   # call default fit_gam() method
-  fit_gam.default(
+  tractable::fit_gam.default(
     formula  = as.formula(formula, env = .GlobalEnv),
     df       = df, 
     autocor  = autocor, 
@@ -432,10 +501,11 @@ fit_gam.character <- function(
   )
 }
 
-#' DESCRIPTION
+#' Save GAM model outputs.
 #' 
 #' @description
-#' A short description...
+#' This function saves the GAM model as RData (.rda) file, the model summary as
+#' a text (.txt) file, and the [mgcv::gam.check()] figures as a PNG (.png) file.
 #' 
 #' @param gam_model
 #' @param file
