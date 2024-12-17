@@ -86,14 +86,118 @@ build_formula <- function(
   return(formula_string)
 }
 
+estimate_distribution <- function(
+  x, distr = c("beta", "gamma", "norm"), eval_metric = "aic"
+) {
+  distr_eval <- sapply(distr, 
+    function(d) fitdistrplus::fitdist(x, d)[[eval_metric]])
+  distr_name <- names(distr_eval)[which.min(distr_eval)]
+  return(distr_name)
+}
 
-#' Fit a GAM for tract node metrics (e.g., FA, MD)
+#' Estimate smoothing basis dimensions for GAM smoothers.
+#' 
+#' @description
+#' 
+#' @param target          The column name that encodes the metric to model.
+#' @param regressors      Column name or list of column names to use as 
+#'                        regressors, not including nodes smoothing terms and 
+#'                        the participant random effect. This list can also 
+#'                        include smoothing terms. Default: NULL.
+#' @param family          The family
+#' @return description
+#' @export 
+estimate_smooth_basis <- function(
+  target, 
+  df, 
+  regressors = NULL, 
+  family = "auto", 
+  ...
+) {
+  # input argument control 
+  smooth_terms <- list(...)
+
+  # determine family function 
+  if (family == "auto") {
+    family <- estimate_distribution(df[[target]], 
+      distr = c("beta", "gamma", "norm"))
+  }
+
+  smooth_terms <- list(
+    age = list(k_end = 10), 
+    nodeID = list(k_start = 4, k_end = 50, bs = "tp")
+  )
+  term_names <- names(smooth_terms)
+  all(term_names %in% names(df))
+
+  default_args <- list(
+    k_start = 1, 
+    k_end = 50, 
+    k_step = 1, 
+    bs = "tp", 
+    k_index = 0.5, 
+    p_value_thr = 0.05
+  )
+  
+  df_k <- tibble::tibble() # initialize results
+  for (i in 1:length(smooth_terms)) { # for each smooth term
+    curr_term <- term_names[i] # current smoothing term name
+
+    curr_args <- default_args # copy default arguments
+    curr_args[names(smooth_terms[[i]])] <- smooth_terms[[i]]
+    
+    k_index <- 0.0
+    p_value <- 1.0
+    curr_k <- curr_args$k_start
+    while (threshold_has_not_been_reached) {
+      curr_smooth <- sprintf("s(%s, k = %d)", curr_term, curr_k)
+
+      formula <- sprintf("%s ~ %s + %s", target, 
+        stringr::str_c(regressors, sep = " + "), curr_smooth)
+      
+      model_fit <- mgcv::bam(
+        formula = as.formula(formula, env = .GlobalEnv), 
+        df = df, 
+        family = linkfamily, 
+        method = method,
+        discrete = discrete
+      )
+
+      k_check <- mgcv::k.check(model_fit)
+      k_index <- stats::na.omit(kcheck[, "k-index"])
+      p_value <- stats::na.omit(k_check[, "p-value"])
+    }
+
+    # collect term, k, k-index, and p-value
+    curr_row <- tibble::tibble(
+      term = curr_term, 
+      k = curr_k, 
+      k_index = k_index, 
+      p_value = p_value, 
+      regressor = if_else(curr_k == 1, curr_term, 
+        sprintf("s(%s, bs = %s, k = %d)", curr_term, curr_args$bs, curr_k))
+    )
+    
+    if (nrow(df) < 1) {
+      df_k <- curr_row
+    } else {
+      df_k <- df_k %>% tibble::add_row(curr_row)
+    }
+    
+  }
+}
+
+
+#' Fit a GAM model.
+#' 
+#' @description 
+#' Function used to fit a GAM formula from an explicit formula or builds a 
+#' formula from the given arguments. 
 #'
 #' @param formula         Explicit formula to use for the GAM.
 #' @param df              The data frame contains GAM metrics.  
 #' @param node_col        The column name that encodes tract node positions.
 #'                        Default: "nodeID".
-#' 
 #' @param target          The column name that encodes the metric to model.
 #' @param regressors      Column name or list of column names to use as 
 #'                        regressors, not including nodes smoothing terms and 
@@ -101,7 +205,7 @@ build_formula <- function(
 #'                        include smoothing terms. Default: NULL.
 #' @param node_k          The basis dimensions used to represent the node 
 #'                        smoother. If `node_group`, the basis value is applied
-#'                        to the group as well. Default: 10. 
+#'                        to the group as well. Default: 'auto'. 
 #' @param node_group      The column name to group the tract node smooth by
 #'                        (i.e., `s(node_col, by = node_group, k = node_k)``).
 #'                        Default: NULL.
@@ -196,13 +300,6 @@ fit_gam.default <- function(
   
   # define GAM linkfamily function
   if (is.character(family)) {
-    # if automatically determining linkfamily function 
-    if (family == "auto") {
-      values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
-      distr_aic <- sapply(c("beta", "gamma", "norm"), 
-        function(x) fitdistrplus::fitdist(values, x)$aic)
-      family <- names(distr_aic)[which.min(distr_aic)]
-    }
     # set linkfamily based on family character
     if (family == "beta") {
       linkfamily <- mgcv::betar(link = "logit")
@@ -272,6 +369,14 @@ fit_gam.formula <- function(
   discrete = TRUE, 
   ...
 ) {
+  # if automatically determining linkfamily function 
+  if (family == "auto") {
+    values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
+    family <- estimate_distribution(values, 
+      distr = c("beta", "gamma", "norm"))
+  }
+
+  # call fit_gam.default
   fit_gam.default(
     formula  = formula, 
     df       = df, 
@@ -289,7 +394,7 @@ fit_gam.character <- function(
   target, 
   df, 
   regressors = NULL, 
-  node_k = 10, 
+  node_k = "auto", 
   node_col = "nodeID", 
   node_group = NULL, 
   participant_col = "subjectID", 
@@ -297,8 +402,14 @@ fit_gam.character <- function(
   family = "auto", 
   method = "fREML",
   discrete = TRUE, 
-  ...
+  ... = ...
 ) {
+  # if automatically determining linkfamily function 
+  if (family == "auto") {
+    family <- estimate_distribution(df[[target]], 
+      distr = c("beta", "gamma", "norm"))
+  }
+
   # use build formula to create formula string
   formula <- tractable::build_formula(
     target = target, 
@@ -321,70 +432,54 @@ fit_gam.character <- function(
   )
 }
 
-#     if (k == "auto") {
-#       # Initial k value. This will be multiplied by 2 in the while loop
-#       k_model <- 4
+#' DESCRIPTION
+#' 
+#' @description
+#' A short description...
+#' 
+#' @param gam_model
+#' @param file
+#' @param model_rdata
+#' @param model_summary
+#' @param model_check 
+#' @return None. 
+#' 
+#' @example
+#' 
+#' @export
+save_gam <- function(
+  gam_model, 
+  file, 
+  model_rdata   = TRUE, 
+  model_summary = TRUE,
+  model_check   = FALSE 
+) {
+  # argument input control
+  stopifnot("`gam_model` must be a class gam or bam" = 
+    any(class(gam_model) %in% c("bam", "gam")))
+  stopifnot("`model_rdata` must be a logical" = is.logical(model_rdata))
+  stopifnot("`model_summary` must be a logical" = is.logical(model_summary))
+  stopifnot("`model_check` must be a logical" = is.logical(model_check))
 
-#       # Initialize k check results to enter the while loop
-#       k_indices <- list(0.0, 0.0)
-#       k_pvals <- list(0.0, 0.0)
+  # save model as Rdata file
+  if (model_rdata) {
+    saveRDS(gam_model, file = file)
+  }
 
-#       while (any(k_indices < 1.0) | any(k_pvals <= 0.05)) {
-#         k_model <- k_model * 2
-#         formula <- build_formula(target = target,
-#                                  covariates = covariates,
-#                                  smooth_terms = smooth_terms,
-#                                  group_by = group_by,
-#                                  participant_id = participant_id,
-#                                  k = k_model)
+  # save model summary as text file
+  if (model_summary) {
+    save_name <- stringr::str_replace(
+      file, ".(RData|Rdata|rdata|rda)$", "_Summary.txt")
+    utils::capture.output(summary(gam_model), file = save_name)
+  }
 
-#         # Fit the gam
-#         gam_fit <- mgcv::bam(
-#           stats::as.formula(formula),
-#           data = df_tract,
-#           family = linkfamily,
-#           method = method,
-#           ... = ...
-#         )
-
-#         k_check <- mgcv::k.check(gam_fit)
-#         k_indices <- stats::na.omit(k_check[, "k-index"])
-#         k_pvals <- stats::na.omit(k_check[, "p-value"])
-#        }
-#     } else {
-#       k_model <- k
-#     }
-#     formula <- build_formula(target = target,
-#                              covariates = covariates,
-#                              smooth_terms = smooth_terms,
-#                              group_by = group_by,
-#                              participant_id = participant_id,
-#                              k = k_model)
-#   }
-
-
-
-
-# save_gam_outputs <- function(gam_fit, out_dir, tract_name){
-#     utils::capture.output(
-#       mgcv::gam.check(gam_fit, rep = 500),
-#       file = file.path(out_dir, paste0(
-#         "k_check_gam_", family, "_", sub(" ", "_", tract_name), ".txt"
-#       ))
-#     )
-#     gam_summary <- summary(gam_fit)
-#     utils::capture.output(
-#       gam_summary,
-#       file = file.path(out_dir, paste0(
-#         "fit_summary_gam_", family, "_", sub(" ", "_", tract_name), ".txt"
-#       ))
-#     )
-
-#     utils::write.csv(
-#       t(gam_summary$p.table[, "Pr(>|t|)"]),
-#       file.path(out_dir, paste0(
-#         "gam_pvals_", family, "_", sub(" ", "_", tract_name), ".csv"
-#         )))
-
-#   }
-  
+  # save gam.check output (text and figures)
+  if (model_check) {
+    save_name <- stringr::str_replace(
+      file, ".(RData|Rdata|rdata|rda)$", "_GamCheck.txt")
+    utils::capture.output(
+      mgcv::gam.check(gam_model, rep = 500, plot = FALSE), 
+      file = save_name,
+    )
+  }
+}

@@ -4,7 +4,7 @@
 \alias{fit_gam}
 \alias{fit_gam.formula}
 \alias{fit_gam.character}
-\title{Fit a GAM for tract node metrics (e.g., FA, MD)}
+\title{Fit a GAM model.}
 \usage{
 fit_gam(...)
 
@@ -23,7 +23,7 @@ fit_gam(...)
   target,
   df,
   regressors = NULL,
-  node_k = 10,
+  node_k = "auto",
   node_col = "nodeID",
   node_group = NULL,
   participant_col = "subjectID",
@@ -31,7 +31,7 @@ fit_gam(...)
   family = "auto",
   method = "fREML",
   discrete = TRUE,
-  ...
+  ... = ...
 )
 }
 \arguments{
@@ -77,7 +77,7 @@ include smoothing terms. Default: NULL.}
 
 \item{node_k}{The basis dimensions used to represent the node
 smoother. If \code{node_group}, the basis value is applied
-to the group as well. Default: 10.}
+to the group as well. Default: 'auto'.}
 
 \item{node_group}{The column name to group the tract node smooth by
 (i.e., `s(node_col, by = node_group, k = node_k)``).
@@ -90,7 +90,8 @@ Default: "subjectID".}
 Fitted GAM model
 }
 \description{
-Fit a GAM for tract node metrics (e.g., FA, MD)
+Function used to fit a GAM formula from an explicit formula or builds a
+formula from the given arguments.
 }
 \details{
 This function has a series of steps:
@@ -108,7 +109,7 @@ target ~ regressor1 (+ regressor2 + ...) +
 s(node_col, by = node_group, k = node_k) +
 s(participant_col, bs = "re")
 \cr
-\item Optionally save the output of gam.check and summary to files.
+\item Optionally, save the output of gam.check and summary to files.
 }
 }
 \examples{

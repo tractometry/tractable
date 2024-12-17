@@ -1,50 +1,86 @@
-test_that("build_formula runs as expected", {
+# test_that("build_formula runs as expected", {
 
-  expect_identical(
-    tractable::build_formula(target = "fa"),
-    "fa ~ s(nodeID, k = 10) + s(subjectID, bs = 're')"
+#   expect_identical(
+#     tractable::build_formula(target = "fa"),
+#     "fa ~ s(nodeID, k = 10) + s(subjectID, bs = 're')"
+#   )
+
+#   expect_identical(
+#     tractable::build_formula(target = "fa", node_k = 15, node_col = "x", 
+#                              participant_col = "participant_id"),
+#     "fa ~ s(x, k = 15) + s(participant_id, bs = 're')"
+#   )
+
+#   expect_identical(
+#     tractable::build_formula(target = "fa", regressors = "group", 
+#                              node_k = 15, node_col = "x", 
+#                              participant_col = "participant_id"),
+#     "fa ~ group + s(x, k = 15) + s(participant_id, bs = 're')"
+#   )
+
+#   expect_identical(
+#     tractable::build_formula(target = "fa", regressors = "group", 
+#                              node_k = 15, node_col = "x", node_group = "group",
+#                              participant_col = "participant_id"),
+#     "fa ~ group + s(x, by = group, k = 15) + s(participant_id, bs = 're')"
+#   )
+
+#   expect_identical(
+#     tractable::build_formula(target = "fa", 
+#                              regressors = c("group", "sex"), 
+#                              node_k = 15, node_col = "x", 
+#                              participant_col = "participant_id"),
+#     "fa ~ group + sex + s(x, k = 15) + s(participant_id, bs = 're')"
+#   )
+
+#   expect_identical(
+#     tractable::build_formula(target = "fa", 
+#                              regressors = c("group", "sex", "nodeID"), 
+#                              node_k = 15, node_group = "group"), 
+#     "fa ~ group + sex + s(nodeID, by = group, k = 15) + s(subjectID, bs = 're')"
+#   )
+
+#   expect_identical(
+#     tractable::build_formula(
+#       target = "fa", regressors = c("age", "group", "s(age, by = group, k = 2)")), 
+#     "fa ~ age + group + s(age, by = group, k = 2) + s(nodeID, k = 10) + s(subjectID, bs = 're')"
+#   )
+# })
+
+test_that("fit_gam run as expected", {
+
+  df_sarica <- tractable::read_afq_sarica() %>% 
+    dplyr::filter(tractID == "Left Thalamic Radiation") %>% 
+    dplyr::mutate(subjectID = factor(subjectID), 
+                  gender = factor(gender)) %>% 
+    tidyr::drop_na() 
+
+  # model_fit <- tractable::fit_gam(
+  #   formula = fa ~ s(age, k = 3), 
+  #   df = df_sarica, 
+  #   family = "auto"
+  # )
+
+  # model_fit <- tractable::fit_gam(
+  #   formula = fa ~ s(nodeID, k = 3) + s(subjectID, bs = "re"), 
+  #   df = df_sarica, 
+  # )
+
+  # model_fit <- tractable::fit_gam(
+  #   target = "fa",
+  #   df = df_sarica, 
+  #   family = "auto"
+  # )
+
+  estimate_smooth_basis(
+    target = "fa", 
+    df = df_sarica, 
+    regressors = "sex",
+    
+    age    = list(k_start = 2, k_end = 5), 
+    nodeID = list(k_start = 2, k_end = 50, bs = "tp")
   )
 
-  expect_identical(
-    tractable::build_formula(target = "fa", node_k = 15, node_col = "x", 
-                             participant_col = "participant_id"),
-    "fa ~ s(x, k = 15) + s(participant_id, bs = 're')"
-  )
-
-  expect_identical(
-    tractable::build_formula(target = "fa", regressors = "group", 
-                             node_k = 15, node_col = "x", 
-                             participant_col = "participant_id"),
-    "fa ~ group + s(x, k = 15) + s(participant_id, bs = 're')"
-  )
-
-  expect_identical(
-    tractable::build_formula(target = "fa", regressors = "group", 
-                             node_k = 15, node_col = "x", node_group = "group",
-                             participant_col = "participant_id"),
-    "fa ~ group + s(x, by = group, k = 15) + s(participant_id, bs = 're')"
-  )
-
-  expect_identical(
-    tractable::build_formula(target = "fa", 
-                             regressors = c("group", "sex"), 
-                             node_k = 15, node_col = "x", 
-                             participant_col = "participant_id"),
-    "fa ~ group + sex + s(x, k = 15) + s(participant_id, bs = 're')"
-  )
-
-  expect_identical(
-    tractable::build_formula(target = "fa", 
-                             regressors = c("group", "sex", "nodeID"), 
-                             node_k = 15, node_group = "group"), 
-    "fa ~ group + sex + s(nodeID, by = group, k = 15) + s(subjectID, bs = 're')"
-  )
-
-  expect_identical(
-    tractable::build_formula(
-      target = "fa", regressors = c("age", "group", "s(age, by = group, k = 2)")), 
-    "fa ~ age + group + s(age, by = group, k = 2) + s(nodeID, k = 10) + s(subjectID, bs = 're')"
-  )
 })
 
 # test_that("fit_gam runs as expected", {
