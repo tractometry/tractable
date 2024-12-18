@@ -131,7 +131,7 @@ estimate_distribution <- function(
   })
   
   # determine best distribution based on evaluation metric 
-  eval_func  <- if (eval_metric == "loglik") which.max else which.min
+  eval_func  <- ifelse(eval_metric == "loglik", which.max, which.min)
   best_distr <- names(distr_eval)[eval_func(distr_eval)]
 
   # based on evaluated distribution, return family function
@@ -173,32 +173,34 @@ estimate_smooth_basis.default <- function() {
 estimate_smooth_basis.formula <- function(
   formula, 
   df, 
+  k_values   = 1:10,
   kindex_thr = 0.95, 
   pvalue_thr = 0.05, 
-  k_values   = 1:50,
-  bs         = "ts",
+  bs         = "tp",
   family     = "auto", 
   method     = "fREML",
   discrete   = TRUE, 
   ...
 ) {
 
-  formula <- as.formula("fa ~ sex + 
+  formula <- as.formula("fa ~ 
+    gender + 
+    group +
+    s(age) +
     s(age, k = c(1, 3, 5)) + 
-    s(nodeID, bs = 'fs') + 
-    s(participantID, bs = 're')")
-
-  #TODO: consider interaction smoothers, and ti, te
-  formula <- as.formula("fa ~ sex + 
-    s(nodeID, age, bs = 'tp') + 
-    s(participantID, bs = 're')")
+    s(nodeID, k = 1:50, bs = 'fs', m = 3) +
+    te(nodeID, age, bs = 'cr') +  
+    t2(nodeID, by = group, bs = 'ts') +
+    s(subjectID, bs = 're')", 
+  env = .GlobalEnv)
+  # TODO: by argumnet does not work so far!
 
   # define default arguments for estimate smooth basis
   default_args <- list(
-    k_values = k_values,
-    bs = bs, 
+    k_values   = k_values,
     kindex_thr = kindex_thr, 
-    pvalue_thr = pvalue_thr
+    pvalue_thr = pvalue_thr, 
+    kwargs     = list("bs" = bs)
   )
 
   # extract formula terms
@@ -206,62 +208,87 @@ estimate_smooth_basis.formula <- function(
     
   # determine which terms have smoothers from the formula 
   f_terms <- stringr::str_replace_all(formula_terms, "\\s", "")
-  smooth_index <- (stringr::str_detect(f_terms, "^s\\(.+\\)$") &
-    stringr::str_detect(f_terms, "bs=.re.", negate = TRUE))
+  smooth_index <- (stringr::str_detect(f_terms, "^(s|te|ti|t2)\\(.+\\)$") &
+    stringr::str_detect(f_terms, "bs=['\"]re['\"]", negate = TRUE))
   
   # define the target, regressor, and smoothing terms
   target_term     <- all.vars(formula)[attr(stats::terms(formula), "response")]
   regressor_terms <- f_terms[!smooth_index]
   smooth_terms    <- f_terms[smooth_index]
 
-  # for each smooth term
+  # estimate smoothing basis for each smooth term
   for (i in 1:length(smooth_terms)) {
-    # extract information from the current smooth term
-    # curr_term <- stringr::str_replace_all(smooth_terms[i], "^s\\(|\\)$", "")
-    # curr_term <- stringr::str_split(curr_term, ",")[[1]]
-    # curr_term
+    # extract information from the current smooth term (using a defused call)
+    defused_call  <- rlang::parse_expr(smooth_terms[i])
+    smooth_func   <- rlang::call_name(defused_call)
+    smooth_args   <- rlang::call_args(defused_call)
 
-    # curr_variable <- curr_term[1]
-
-    # curr <- smooth_terms[1]
-    # call <- substitute(expr(curr))
-    
-
-    # curr_args <- default_args # initialize
-    # if (length(curr_term) > 1) { # if additional smoothing terms
-    #   # for each additional argument
-    #   for (term in curr_term[2:length(curr_term)]) {
-    #     term <- stringr::str_split(term, "=")[[1]] # (key, value)
-    #     if (term[1] == "k") {
-    #       curr_args$k_values <- eval(parse(text = term[2]))
-    #     } else {
-    #       curr_args[[term[1]]] <- term[2]
-    #     }
-    #   }
-    # } 
+    # define current smooth variable(s) and extra arguments
+    var_index   <- names(smooth_args) == ""
+    smooth_vars <- as.character(smooth_args[var_index])
+    smooth_vars <- stringr::str_flatten_comma(smooth_vars)
+    curr_args  <- default_args # initialize
+    if (length(smooth_args) > sum(var_index)) { # if additional smoothing arguments
+      for (j in (sum(var_index) + 1):length(smooth_args)) {
+        curr_key <- names(smooth_args)[j] # extract argument name
+        curr_values <- eval(smooth_args[[j]]) # evaluate argument value
+        if (curr_key == "k") { 
+          curr_args$k_values <- curr_values
+        } else { # else assign argument to kwargs list
+          curr_args$kwargs[[curr_key]] <- eval(smooth_args[[j]]) 
+        }
+      }
+    } 
 
     # declare initial values of k_index and p_value
+    ct <- 1 # intialize counter
     k_index <- 0.0 # desire towards 1.0
     p_value <- 0.0 # desire towards 1.0
-    while (k_index < curr_args$kindex_thr && p_value < curr_args$pvalue_thr) {
+    #TODO: fix stop condition, currently not correct
+    while (ct <= length(curr_args$k_values) && 
+      k_index < curr_args$kindex_thr &&
+      p_value < curr_args$pvalue_thr) {
+      
+      # define smooth term k value and additional kwargs
+      curr_kwargs   <- curr_args$kwargs # initialize
+      curr_kwargs$k <- curr_args$k_values[ct] # increment k value
+      curr_kwargs   <- lapply(curr_kwargs, function(x) { 
+        ifelse(is.character(x), sprintf("'%s'", x), x) })
 
+      # define current smoothing variable
+      curr_smooth_term <- sprintf("%s(%s, %s)",
+        smooth_func, smooth_vars, 
+        stringr::str_c(names(curr_kwargs), " = ", curr_kwargs, collapse = ", ")
+      )
+
+      # define formula with regressor terms and ONLY current smoothing term
+      curr_formula <- stats::reformulate(
+        termlabels = c(regressor_terms, curr_smooth_term), 
+        response = target_term, 
+        env = .GlobalEnv
+      )
+      print(curr_formula)
 
       # fit current model with regressors and current smooth term
-      curr_model <- mgcv::bam(
-        formula  = as.formula(formula, env = .GlobalEnv), 
-        df       = df, 
-        family   = linkfamily, 
-        method   = method,
-        discrete = discrete
+      suppressWarnings(
+        curr_model <- mgcv::bam(
+          formula  = curr_formula, 
+          data     = df, 
+          family   = linkfamily, 
+          method   = method,
+          discrete = discrete
+        )
       )
 
       # call k.check on model fit
       k_check <- mgcv::k.check(curr_model)
 
       # redefine k.check metrics for all smooth coefficients
-      smooth_rowname <- sprintf("s(%s)", curr_variable)
+      smooth_rowname <- sprintf("%s(%s)", smooth_func, 
+        stringr::str_replace_all(smooth_vars, "\\s", ""))
       k_index <- k_check[smooth_rowname, "k-index"]
       p_value <- k_check[smooth_rowname, "p-value"]
+      ct <- ct + 1 # increment counter
     }
   }
 
@@ -298,9 +325,10 @@ estimate_smooth_basis.formula <- function(
 #'                        GAM dependent variable.
 #'                        \cr \cr
 #'                        If name, possible values: ('auto', 'beta', 'gamma', 
-#'                        'norm'). If 'auto', will automatically determine the 
-#'                        distribution of best fit between mgcv::betar ('beta'), 
-#'                        stats::Gamma ('gamma'), or stats::gaussian ('norm').
+#'                        'norm'/'gaussian'). If 'auto', will automatically 
+#'                        determine the distribution of best fit between 
+#'                        [mgcv::betar()] ('beta'), [stats::Gamma()] ('gamma'), 
+#'                        or [stats::gaussian()] ('norm' | 'gaussian'). \cr
 #'                        Default: 'auto'
 #'                        \cr \cr
 #'                        See [stats::family()] or [mgcv::family.mgcv()] for 
@@ -365,14 +393,14 @@ fit_gam.default <- function(
   ...
 ) {
   # argument input control
-  stopifnot("`formula` must be a class formulas" = class(formula) == "formula")
+  stopifnot("`formula` must be a class formula" = class(formula) == "formula")
   stopifnot("`df` must be a class data.frame or tibble" = 
     any(class(df) %in% c("data.frame", "tbl_df")))
   stopifnot("`node_col` must be a character" = is.character(node_col))
   stopifnot("`autocor` must be a logical" = is.logical(autocor))
   if (is.character(family)) { family <- stringr::str_to_lower(family) }
-  stopifnot("`family` must be a recognized family (auto, gamma, beta) or a family class function" = 
-    any(family %in% c("auto", "gamma", "beta", "norm")) || 
+  stopifnot("`family` must be a recognized family or a family class function" = 
+    any(family %in% c("gamma", "beta", "norm")) || 
     any(class(family) %in% c("family", "extended.family")))
   stopifnot("`method` must be a recognized method" = 
     any(method %in% c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")))
@@ -385,7 +413,7 @@ fit_gam.default <- function(
       linkfamily <- mgcv::betar(link = "logit")
     } else if (family == "gamma") {
       linkfamily <- stats::Gamma(link = "logit")
-    } else if (family == "gaussian" || family == "norm" ) {
+    } else if (family == "norm" ) {
       linkfamily <- stats::gaussian(link = "identity")
     }
   } else { # family function provided
@@ -488,6 +516,13 @@ fit_gam.character <- function(
   if (family == "auto") {
     family <- tractable::estimate_distribution(df[[target]], 
       distr_names = c("beta", "gamma", "norm"))
+  }
+
+  # if automatically determining node smoothing basis
+  if (node_k == "auto") {
+    node_k <- estimate_smooth_basis.default(
+
+    )
   }
 
   # use build formula to create formula string

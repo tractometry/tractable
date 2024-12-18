@@ -52,9 +52,10 @@ Default: TRUE.}
 GAM dependent variable.
 \cr \cr
 If name, possible values: ('auto', 'beta', 'gamma',
-'norm'). If 'auto', will automatically determine the
-distribution of best fit between mgcv::betar ('beta'),
-stats::Gamma ('gamma'), or stats::gaussian ('norm').
+'norm'/'gaussian'). If 'auto', will automatically
+determine the distribution of best fit between
+\code{\link[mgcv:Beta]{mgcv::betar()}} ('beta'), \code{\link[stats:family]{stats::Gamma()}} ('gamma'),
+or \code{\link[stats:family]{stats::gaussian()}} ('norm' | 'gaussian'). \cr
 Default: 'auto'
 \cr \cr
 See \code{\link[stats:family]{stats::family()}} or \code{\link[mgcv:family.mgcv]{mgcv::family.mgcv()}} for
