@@ -13,8 +13,12 @@ estimate_distribution(
 \arguments{
 \item{x}{A numeric vector that will be evaluated.}
 
+\item{distr_names}{A vector of distribution names to evaluate the values. \cr
+Possible options: ('beta', 'gamma', 'norm') \cr
+Default: c("beta", "gamma", "norm")}
+
 \item{eval_metric}{The distribution evaluation metric names. \cr
-Possible options: {'aic', 'bic', 'loglik'} \cr
+Possible options: ('aic', 'bic', 'loglik') \cr
 Default: "aic"}
 }
 \value{

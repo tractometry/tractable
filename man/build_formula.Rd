@@ -35,7 +35,7 @@ Default: NULL.}
 Default: "subjectID".}
 }
 \value{
-A GAM formula string.
+A GAM formula.
 }
 \description{
 Function used to build a generic GAM formula string from the given arguments.

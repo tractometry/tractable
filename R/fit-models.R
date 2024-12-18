@@ -21,7 +21,7 @@
 #' @param participant_col The column name that encodes participant ID.
 #'                        Default: "subjectID".
 #'
-#' @return A GAM formula string.
+#' @return A GAM formula. 
 #'
 #' @examples
 #' formula <- build_formula(target = "dti_fa", node_k = 40)
@@ -63,27 +63,26 @@ build_formula <- function(
     node_smoother <- sprintf("s(%s, k = %d)", node_col, node_k)
   }
 
-  # define random effects (intercept) of participant
+  # define random effects (intercept and node smooth) of participant
   participant_random_effect <- sprintf("s(%s, bs = 're')", participant_col)
+  participant_node_smooth <- sprintf("s(%s, by = %s, bs = 'fs')", 
+    node_col, participant_col)
 
-  # define formula depending on regressors
+  # define additional regressors (additive effects ONLY)
   if (!is.null(regressors)) { 
     # remove node and participant columns from regressor list
     regressors <- regressors[! regressors %in% c(node_col, participant_col)]
+  } 
 
-    # define regressor effect(s) as additive effects ONLY
-    regressor_effects <- stringr::str_flatten(regressors, collapse = " + ")
-
-    # define formula string with regressor effect(s)
-    formula_string <- sprintf("%s ~ %s + %s + %s", target, regressor_effects, 
-      node_smoother, participant_random_effect)
-  } else {
-    # define formula string without regressor effect(s)
-    formula_string <- sprintf("%s ~ %s + %s", target, node_smoother, 
-      participant_random_effect)
-  }
+  # define formula (in global environment)
+  formula <- stats::reformulate(
+    termlabels = c(regressors, node_smoother, participant_random_effect,
+                   participant_node_smooth), 
+    response = target, 
+    env = .GlobalEnv
+  )
   
-  return(formula_string)
+  return(formula)
 }
 
 #' Estimate distribution function. 
@@ -149,7 +148,8 @@ estimate_distribution <- function(
 
 #' Estimate smoothing basis dimensions for GAM smoothers.
 #' 
-#' @description
+#' @description 
+#' asdfasdfa
 #' 
 #' @param target          The column name that encodes the metric to model.
 #' @param regressors      Column name or list of column names to use as 
@@ -160,102 +160,113 @@ estimate_distribution <- function(
 #' @return description
 #' @export 
 estimate_smooth_basis <- function(...) {
-  getMethod("estimate_smooth_basis")
+  UseMethod("estimate_smooth_basis")
 }
-  
-estimate_smooth_basis <- function(
-  target, 
+
+#' @export
+estimate_smooth_basis.default <- function() {
+
+}
+
+
+#' @export
+estimate_smooth_basis.formula <- function(
+  formula, 
   df, 
-  regressors = NULL, 
-  family = "auto", 
-  k_start = 1, 
-  k_end   = 50, 
-  k_step  = 1, 
-  bs      = "tp", 
   kindex_thr = 0.95, 
   pvalue_thr = 0.05, 
+  k_values   = 1:50,
+  bs         = "ts",
+  family     = "auto", 
+  method     = "fREML",
+  discrete   = TRUE, 
   ...
 ) {
-  # input argument control 
-  smooth_terms <- list(...)
 
-  # determine family function 
-  if (family == "auto") {
-    family <- estimate_distribution(df[[target]], 
-      distr = c("beta", "gamma", "norm"))
-  }
+  formula <- as.formula("fa ~ sex + 
+    s(age, k = c(1, 3, 5)) + 
+    s(nodeID, bs = 'fs') + 
+    s(participantID, bs = 're')")
 
-  smooth_terms <- list(
-    age = list(k_end = 10), 
-    nodeID = list(k_start = 4, k_end = 50, bs = "tp")
-  )
-  term_names <- names(smooth_terms)
-  all(term_names %in% names(df))
+  #TODO: consider interaction smoothers, and ti, te
+  formula <- as.formula("fa ~ sex + 
+    s(nodeID, age, bs = 'tp') + 
+    s(participantID, bs = 're')")
 
+  # define default arguments for estimate smooth basis
   default_args <- list(
-    k_start = k_start, 
-    k_end = k_end, 
-    k_step = k_step, 
+    k_values = k_values,
     bs = bs, 
     kindex_thr = kindex_thr, 
     pvalue_thr = pvalue_thr
   )
-  
-  df_k <- tibble::tibble() # initialize results
-  for (i in 1:length(smooth_terms)) { # for each smooth term
-    curr_term <- term_names[i] # current smoothing term name
 
-    curr_args <- default_args # copy default arguments
-    curr_args[names(smooth_terms[[i]])] <- smooth_terms[[i]]
+  # extract formula terms
+  formula_terms <- labels(terms(formula))
     
-    k_index <- 0.0
-    p_value <- 1.0
-    curr_k <- curr_args$k_start
-    while (k_index >= kindex_thr && p_value > pvalue_thr) {
+  # determine which terms have smoothers from the formula 
+  f_terms <- stringr::str_replace_all(formula_terms, "\\s", "")
+  smooth_index <- (stringr::str_detect(f_terms, "^s\\(.+\\)$") &
+    stringr::str_detect(f_terms, "bs=.re.", negate = TRUE))
+  
+  # define the target, regressor, and smoothing terms
+  target_term     <- all.vars(formula)[attr(stats::terms(formula), "response")]
+  regressor_terms <- f_terms[!smooth_index]
+  smooth_terms    <- f_terms[smooth_index]
 
-      curr_smooth <- sprintf("s(%s, k = %d)", curr_term, curr_k)
+  # for each smooth term
+  for (i in 1:length(smooth_terms)) {
+    # extract information from the current smooth term
+    # curr_term <- stringr::str_replace_all(smooth_terms[i], "^s\\(|\\)$", "")
+    # curr_term <- stringr::str_split(curr_term, ",")[[1]]
+    # curr_term
 
-          # define current formula
-      formula <- sprintf("%s ~ %s + %s", target, 
-        stringr::str_c(regressors, sep = " + "), curr_smooth)
+    # curr_variable <- curr_term[1]
 
-    # fit current model with all covariates
+    # curr <- smooth_terms[1]
+    # call <- substitute(expr(curr))
+    
+
+    # curr_args <- default_args # initialize
+    # if (length(curr_term) > 1) { # if additional smoothing terms
+    #   # for each additional argument
+    #   for (term in curr_term[2:length(curr_term)]) {
+    #     term <- stringr::str_split(term, "=")[[1]] # (key, value)
+    #     if (term[1] == "k") {
+    #       curr_args$k_values <- eval(parse(text = term[2]))
+    #     } else {
+    #       curr_args[[term[1]]] <- term[2]
+    #     }
+    #   }
+    # } 
+
+    # declare initial values of k_index and p_value
+    k_index <- 0.0 # desire towards 1.0
+    p_value <- 0.0 # desire towards 1.0
+    while (k_index < curr_args$kindex_thr && p_value < curr_args$pvalue_thr) {
+
+
+      # fit current model with regressors and current smooth term
       curr_model <- mgcv::bam(
-        formula = as.formula(formula, env = .GlobalEnv), 
-        df = df, 
-        family = linkfamily, 
-        method = method,
+        formula  = as.formula(formula, env = .GlobalEnv), 
+        df       = df, 
+        family   = linkfamily, 
+        method   = method,
         discrete = discrete
       )
 
-    # call k.check on model metrics
-    k_check <- k.check(curr_model)
+      # call k.check on model fit
+      k_check <- mgcv::k.check(curr_model)
 
-    # collect k.check metrics for all smooth coefficients
-    smooth_term <- sprintf("s(%s)", curr_kvar)
-    curr_kspace$k_index[i2] <- k_check[smooth_term, "k-index"]
-    curr_kspace$p_value[i2] <- k_check[smooth_term, "p-value"]
+      # redefine k.check metrics for all smooth coefficients
+      smooth_rowname <- sprintf("s(%s)", curr_variable)
+      k_index <- k_check[smooth_rowname, "k-index"]
+      p_value <- k_check[smooth_rowname, "p-value"]
     }
+  }
 
-    # collect term, k, k-index, and p-value
-    curr_row <- tibble::tibble(
-      term = curr_term, 
-      k = curr_k, 
-      k_index = k_index, 
-      p_value = p_value, 
-      regressor = if_else(curr_k == 1, curr_term, 
-        sprintf("s(%s, bs = %s, k = %d)", curr_term, curr_args$bs, curr_k))
-    )
-    
-    if (nrow(df) < 1) {
-      df_k <- curr_row
-    } else {
-      df_k <- df_k %>% tibble::add_row(curr_row)
-    }
-     }
-     
 }
-
+  
 
 #' Fit a GAM model.
 #' 
@@ -441,12 +452,12 @@ fit_gam.formula <- function(
   # if automatically determining linkfamily function 
   if (family == "auto") {
     values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
-    family <- tractable::estimate_distribution(values, 
+    family <- estimate_distribution(values, 
       distr_names = c("beta", "gamma", "norm"))
   }
 
   # call fit_gam.default
-  tractable::fit_gam.default(
+  fit_gam.default(
     formula  = formula, 
     df       = df, 
     autocor  = autocor, 
@@ -480,7 +491,7 @@ fit_gam.character <- function(
   }
 
   # use build formula to create formula string
-  formula <- tractable::build_formula(
+  formula <- build_formula(
     target = target, 
     regressors = regressors, 
     node_k = node_k, 
@@ -490,8 +501,8 @@ fit_gam.character <- function(
   )
 
   # call default fit_gam() method
-  tractable::fit_gam.default(
-    formula  = as.formula(formula, env = .GlobalEnv),
+  fit_gam.default(
+    formula  = formula, 
     df       = df, 
     autocor  = autocor, 
     family   = family, 
@@ -507,15 +518,13 @@ fit_gam.character <- function(
 #' This function saves the GAM model as RData (.rda) file, the model summary as
 #' a text (.txt) file, and the [mgcv::gam.check()] figures as a PNG (.png) file.
 #' 
-#' @param gam_model
-#' @param file
-#' @param model_rdata
-#' @param model_summary
-#' @param model_check 
+#' @param gam_model asdfasdf
+#' @param file asdfasdf
+#' @param model_rdata asdfasdf
+#' @param model_summary asdfasdf
+#' @param model_check  asdfasdf
 #' @return None. 
-#' 
-#' @example
-#' 
+#'  
 #' @export
 save_gam <- function(
   gam_model, 

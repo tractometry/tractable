@@ -31,7 +31,7 @@ fit_gam(...)
   family = "auto",
   method = "fREML",
   discrete = TRUE,
-  ... = ...
+  ...
 )
 }
 \arguments{
@@ -51,8 +51,8 @@ Default: TRUE.}
 \item{family}{Name or function of the distribution to use for the
 GAM dependent variable.
 \cr \cr
-If name, possible values: {'auto', 'beta', 'gamma',
-'norm'}. If 'auto', will automatically determine the
+If name, possible values: ('auto', 'beta', 'gamma',
+'norm'). If 'auto', will automatically determine the
 distribution of best fit between mgcv::betar ('beta'),
 stats::Gamma ('gamma'), or stats::gaussian ('norm').
 Default: 'auto'
@@ -80,7 +80,7 @@ smoother. If \code{node_group}, the basis value is applied
 to the group as well. Default: 'auto'.}
 
 \item{node_group}{The column name to group the tract node smooth by
-(i.e., `s(node_col, by = node_group, k = node_k)``).
+(i.e., \code{s(node_col, by = node_group, k = node_k)}).
 Default: NULL.}
 
 \item{participant_col}{The column name that encodes participant ID.

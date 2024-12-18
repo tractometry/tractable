@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit-models.R
 \name{save_gam}
 \alias{save_gam}
-\title{DESCRIPTION}
+\title{Save GAM model outputs.}
 \usage{
 save_gam(
   gam_model,
@@ -13,11 +13,20 @@ save_gam(
 )
 }
 \arguments{
-\item{model_check}{}
+\item{gam_model}{asdfasdf}
+
+\item{file}{asdfasdf}
+
+\item{model_rdata}{asdfasdf}
+
+\item{model_summary}{asdfasdf}
+
+\item{model_check}{asdfasdf}
 }
 \value{
 None.
 }
 \description{
-A short description...
+This function saves the GAM model as RData (.rda) file, the model summary as
+a text (.txt) file, and the \code{\link[mgcv:gam.check]{mgcv::gam.check()}} figures as a PNG (.png) file.
 }

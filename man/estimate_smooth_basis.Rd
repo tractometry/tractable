@@ -4,7 +4,7 @@
 \alias{estimate_smooth_basis}
 \title{Estimate smoothing basis dimensions for GAM smoothers.}
 \usage{
-estimate_smooth_basis(target, df, regressors = NULL, family = "auto", ...)
+estimate_smooth_basis(...)
 }
 \arguments{
 \item{target}{The column name that encodes the metric to model.}
@@ -20,5 +20,5 @@ include smoothing terms. Default: NULL.}
 description
 }
 \description{
-Estimate smoothing basis dimensions for GAM smoothers.
+asdfasdfa
 }
