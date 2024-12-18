@@ -182,18 +182,26 @@ estimate_smooth_basis.formula <- function(
   discrete   = TRUE, 
   ...
 ) {
-
-  formula <- as.formula("fa ~ 
-    gender + 
-    group +
-    s(age) +
-    s(age, k = c(1, 3, 5)) + 
-    s(nodeID, k = 1:50, bs = 'fs', m = 3) +
-    te(nodeID, age, bs = 'cr') +  
-    t2(nodeID, by = group, bs = 'ts') +
-    s(subjectID, bs = 're')", 
-  env = .GlobalEnv)
-  # TODO: by argumnet does not work so far!
+  # argument input control
+  stopifnot("`formula` must be a formula class" = class(formula) == "formula")
+  stopifnot("`df` must be a class data.frame or tibble" = 
+    any(class(df) %in% c("data.frame", "tbl_df")))
+  stopifnot("`k_values` must be numeric values" = is.numeric(k_values))
+  stopifnot("`kindex_thr` must be a numeric value" = 
+    length(kindex_thr) == 1 && is.numeric(kindex_thr))
+  stopifnot("`pvalue_thr` must be a numeric value" = 
+    length(pvalue_thr) == 1 && is.numeric(pvalue_thr))
+  stopifnot("`bs` must be a recognized character value" = 
+    length(bs) == 1 && is.character(bs) && 
+    any(bs %in% c("tp", "ts", "ds", "cr", "cs", "cc", "sos", "bs", "ps", "cp", 
+                  "mrf", "gp", "so", "sw", "sf", "ad", "sz", "fs")))
+  if (is.character(family)) { family <- stringr::str_to_lower(family) }
+  stopifnot("`family` must be a recognized family or a family class function" = 
+    any(family %in% c("auto", "gamma", "beta", "norm")) || 
+    any(class(family) %in% c("family", "extended.family")))
+  stopifnot("`method` must be a recognized method" = 
+    any(method %in% c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")))
+  stopifnot("`discrete` must be a logical" = is.logical(discrete))
 
   # define default arguments for estimate smooth basis
   default_args <- list(
@@ -217,22 +225,32 @@ estimate_smooth_basis.formula <- function(
   smooth_terms    <- f_terms[smooth_index]
 
   # estimate smoothing basis for each smooth term
+  k_estimates <- tibble::tibble() # create empty tibble
+  est_smooth_terms <- rep("", length(smooth_terms)) # initialize
   for (i in 1:length(smooth_terms)) {
     # extract information from the current smooth term (using a defused call)
-    defused_call  <- rlang::parse_expr(smooth_terms[i])
-    smooth_func   <- rlang::call_name(defused_call)
-    smooth_args   <- rlang::call_args(defused_call)
+    defused_call     <- rlang::parse_expr(smooth_terms[i])
+    smooth_func      <- rlang::call_name(defused_call)
+    smooth_args      <- rlang::call_args(defused_call)
+    smooth_arg_names <- names(smooth_args)
 
-    # define current smooth variable(s) and extra arguments
-    var_index   <- names(smooth_args) == ""
-    smooth_vars <- as.character(smooth_args[var_index])
+    # define current smooth variable(s)
+    smooth_vars <- as.character(smooth_args[smooth_arg_names == ""]) 
+    by_index <- smooth_arg_names == "by"
+    if (any(by_index)) { # if by argument, concatename variable to smooth_vars
+      by_var <- as.character(smooth_args[by_index])
+      smooth_vars <- c(smooth_vars, stringr::str_c("by = ", by_var))
+    }
     smooth_vars <- stringr::str_flatten_comma(smooth_vars)
-    curr_args  <- default_args # initialize
+
+    # define smooth function additional arguments
+    curr_args <- default_args # initialize
+    var_index <- smooth_arg_names %in% c("", "by")
     if (length(smooth_args) > sum(var_index)) { # if additional smoothing arguments
       for (j in (sum(var_index) + 1):length(smooth_args)) {
-        curr_key <- names(smooth_args)[j] # extract argument name
+        curr_key <- smooth_arg_names[j] # extract argument name
         curr_values <- eval(smooth_args[[j]]) # evaluate argument value
-        if (curr_key == "k") { 
+        if (curr_key == "k") { # if current value is `k`
           curr_args$k_values <- curr_values
         } else { # else assign argument to kwargs list
           curr_args$kwargs[[curr_key]] <- eval(smooth_args[[j]]) 
@@ -240,18 +258,22 @@ estimate_smooth_basis.formula <- function(
       }
     } 
 
-    # declare initial values of k_index and p_value
-    ct <- 1 # intialize counter
-    k_index <- 0.0 # desire towards 1.0
-    p_value <- 0.0 # desire towards 1.0
-    #TODO: fix stop condition, currently not correct
-    while (ct <= length(curr_args$k_values) && 
-      k_index < curr_args$kindex_thr &&
-      p_value < curr_args$pvalue_thr) {
-      
+    # define k_check smoothing term rowname(s)
+    smooth_vars_strip <- stringr::str_replace_all(smooth_vars, "\\s", "")
+    if (stringr::str_detect(smooth_vars, "by = ")) {
+      s_vars <- stringr::str_replace(smooth_vars_strip, sprintf(",by=%s", by_var), "")
+      by_levels <- levels(df_sarica[[by_var]]) # extract group by levels
+      smooth_rowname <- sprintf("%s(%s):%s%s", smooth_func, s_vars, by_var, by_levels)
+    } else { # else, no group by levels to consider
+      smooth_rowname <- sprintf("%s(%s)", smooth_func, smooth_vars_strip)
+    }
+
+    # start estimate smoothing basis paramter, k
+    k_values <- curr_args$k_values # current k values
+    for (j in 1:length(k_values)) { # for each k value
       # define smooth term k value and additional kwargs
       curr_kwargs   <- curr_args$kwargs # initialize
-      curr_kwargs$k <- curr_args$k_values[ct] # increment k value
+      curr_kwargs$k <- curr_args$k_values[j] # increment k value
       curr_kwargs   <- lapply(curr_kwargs, function(x) { 
         ifelse(is.character(x), sprintf("'%s'", x), x) })
 
@@ -267,7 +289,6 @@ estimate_smooth_basis.formula <- function(
         response = target_term, 
         env = .GlobalEnv
       )
-      print(curr_formula)
 
       # fit current model with regressors and current smooth term
       suppressWarnings(
@@ -283,15 +304,25 @@ estimate_smooth_basis.formula <- function(
       # call k.check on model fit
       k_check <- mgcv::k.check(curr_model)
 
-      # redefine k.check metrics for all smooth coefficients
-      smooth_rowname <- sprintf("%s(%s)", smooth_func, 
-        stringr::str_replace_all(smooth_vars, "\\s", ""))
-      k_index <- k_check[smooth_rowname, "k-index"]
-      p_value <- k_check[smooth_rowname, "p-value"]
-      ct <- ct + 1 # increment counter
+      # redefine k.check metrics for all smooth coefficients, averaged by levels
+      k_index <- mean(k_check[smooth_rowname, "k-index"], na.rm = TRUE)
+      p_value <- mean(k_check[smooth_rowname, "p-value"], na.rm = TRUE)
+
+      # store k estimates into data frame
+      k_estimates <- k_estimates %>% 
+        dplyr::bind_rows(tibble::tibble_row(
+          term = curr_smooth_term, k_index = k_index, p_value = p_value))
+
+      # stopping condition based on k-index and p-value
+      if (k_index > curr_args$kindex_thr && 
+        p_value > curr_args$pvalue_thr) break;
     }
+
+    # collect "best" estimated smoothing term
+    est_smooth_terms[i] <- curr_smooth_term
   }
 
+  return(list(est_terms = est_smooth_terms, k_estimates = k_estimates))
 }
   
 
