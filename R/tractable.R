@@ -39,7 +39,7 @@ tractable_single_bundle <- function(df_afq,
                                  smooth_terms = NULL,
                                  k = "auto",
                                  family = "auto",
-                                 ...) {
+                                 ... ) {
   selected <- select_bundle(
     df_afq = df_afq,
     tract = tract,

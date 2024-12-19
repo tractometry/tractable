@@ -67,7 +67,7 @@ strategy to find `k`.
 
 ```{r}
 gam_fit_cst <- tractable::tractable_single_bundle(
-  df_afq         = sarica,
+  df             = sarica,
   tract          = "Right Corticospinal",
   participant_id = "subjectID",
   group_by       = "group",
