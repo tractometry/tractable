@@ -6,20 +6,20 @@
 \usage{
 estimate_distribution(
   x,
-  distr_names = c("beta", "gamma", "norm"),
+  distr_options = c("beta", "gamma", "gaussian"),
   eval_metric = "aic"
 )
 }
 \arguments{
 \item{x}{A numeric vector that will be evaluated.}
 
-\item{distr_names}{A vector of distribution names to evaluate the values. \cr
-Possible options: ('beta', 'gamma', 'norm') \cr
-Default: c("beta", "gamma", "norm")}
-
 \item{eval_metric}{The distribution evaluation metric names. \cr
 Possible options: ('aic', 'bic', 'loglik') \cr
 Default: "aic"}
+
+\item{distr_names}{A vector of distribution names to evaluate the values. \cr
+Possible options: ('beta', 'gamma', 'gaussian') \cr
+Default: c("beta", "gamma", "gaussian")}
 }
 \value{
 The best fitting family function to the values.

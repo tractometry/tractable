@@ -50,9 +50,10 @@
 test_that("fit_gam run as expected", {
 
   df_sarica <- tractable::read_afq_sarica() %>% 
-    dplyr::filter(tractID == "Left Thalamic Radiation") %>% 
+    dplyr::filter(tractID == "Right Corticospinal") %>% 
     dplyr::mutate(subjectID = factor(subjectID), 
-                  gender = factor(gender)) %>% 
+                  gender = factor(gender), 
+                  group = factor(class)) %>% 
     tidyr::drop_na() 
 
   # model_fit <- tractable::fit_gam(
@@ -69,17 +70,40 @@ test_that("fit_gam run as expected", {
   # model_fit <- tractable::fit_gam(
   #   target = "fa",
   #   df = df_sarica, 
+  #   node_k = 14, 
   #   family = "auto"
   # )
 
-  estimate_smooth_basis(
-    target = "fa", 
-    df = df_sarica, 
-    regressors = "sex",
+  # estimate_smooth_basis(
+  #   target = "fa", 
+  #   df = df_sarica, 
+  #   regressors = "sex",
     
-    age    = list(k_start = 2, k_end = 5), 
-    nodeID = list(k_start = 2, k_end = 50, bs = "tp")
+  #   age    = list(k_start = 2, k_end = 5), 
+  #   nodeID = list(k_start = 2, k_end = 50, bs = "tp")
+  # )
+
+  model0 <- tractable::fit_gam(
+    formula = fa ~ group + 
+      s(nodeID, by = group, k = 16) + 
+      s(subjectID, bs = "re") + 
+      s(nodeID, subjectID, bs = "fs", m = 1),
+    df = df_sarica, 
+    family = "norm"
   )
+  summary(model0)
+
+  model1 <- tractable::fit_gam(
+    formula = fa ~ group + 
+      s(nodeID, by = group, k = 16) + 
+      s(subjectID, bs = "re") + 
+      s(nodeID, subjectID, bs = "fs", m = 3),
+    df = df_sarica, 
+    family = "norm"
+  )
+  summary(model1)
+
+  itsadug::compareML(model0, model1)
 
 })
 

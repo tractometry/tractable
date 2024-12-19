@@ -3,7 +3,6 @@
 \name{fit_gam}
 \alias{fit_gam}
 \alias{fit_gam.formula}
-\alias{fit_gam.character}
 \title{Fit a GAM model.}
 \usage{
 fit_gam(...)
@@ -12,21 +11,6 @@ fit_gam(...)
   formula,
   df,
   node_col = "nodeID",
-  autocor = TRUE,
-  family = "auto",
-  method = "fREML",
-  discrete = TRUE,
-  ...
-)
-
-\method{fit_gam}{character}(
-  target,
-  df,
-  regressors = NULL,
-  node_k = "auto",
-  node_col = "nodeID",
-  node_group = NULL,
-  participant_col = "subjectID",
   autocor = TRUE,
   family = "auto",
   method = "fREML",

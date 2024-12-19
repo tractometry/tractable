@@ -1,3 +1,8 @@
+
+# Global Variables
+FAMILY_FUNCTION_NAMES <- c("beta", "gamma" , "gaussian", "norm")
+MGCV_METHODS <- c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")
+
 #' Build a GAM formula.
 #' 
 #' @description
@@ -15,7 +20,7 @@
 #'                        Default: "nodeID".
 #' @param node_k          The basis dimensions used to represent the node 
 #'                        smoother. If `node_group`, the basis value is applied
-#'                        to the group as well. Default: 10. 
+#'                        to the group as well. Default: NULL
 #' @param node_group      The column name to group the tract node smooth by.
 #'                        Default: NULL.
 #' @param participant_col The column name that encodes participant ID.
@@ -33,10 +38,10 @@
 #' @export
 build_formula <- function(
   target, 
-  regressors = NULL, 
-  node_col = "nodeID", 
-  node_k = 10, 
-  node_group = NULL, 
+  regressors      = NULL, 
+  node_col        = "nodeID", 
+  node_k          = NULL, 
+  node_group      = NULL, 
   participant_col = "subjectID"
 ) {
   # argument input control
@@ -46,8 +51,10 @@ build_formula <- function(
     is.character(regressors))
   }
   stopifnot("`node_col` must be a character" = is.character(node_col))
-  stopifnot("`node_k` must be a numeric" = is.numeric(node_k))
-  stopifnot("`node_k` must be a integer value" = (node_k %% 1) == 0)
+  if (!is.null(node_k)) {
+    stopifnot("`node_k` must be a numeric" = is.numeric(node_k))
+    stopifnot("`node_k` must be a integer value" = (node_k %% 1) == 0)
+  } 
   if (!is.null(node_group)) {
     stopifnot("`node_group` must be a character" = is.character(node_group))
     stopifnot("There can be only one `node_group`" = length(node_group) == 1)
@@ -56,11 +63,13 @@ build_formula <- function(
     is.character(participant_col))
 
   # define node smooth term (with or without group)
-  if (!is.null(node_group)) {
+  if(!is.null(node_k) && !is.null(node_group)) {
     node_smoother <- sprintf("s(%s, by = %s, k = %d)", 
       node_col, node_group, node_k)
-  } else {
+  } else if (!is.null(node_k)) {
     node_smoother <- sprintf("s(%s, k = %d)", node_col, node_k)
+  } else {
+    node_smoother <- sprintf("s(%s)", node_col)
   }
 
   # define random effects (intercept and node smooth) of participant
@@ -85,12 +94,13 @@ build_formula <- function(
   return(formula)
 }
 
+
 #' Estimate distribution function. 
 #' 
 #' @param x           A numeric vector that will be evaluated. 
 #' @param distr_names A vector of distribution names to evaluate the values. \cr
-#'                    Possible options: ('beta', 'gamma', 'norm') \cr
-#'                    Default: c("beta", "gamma", "norm")
+#'                    Possible options: ('beta', 'gamma', 'gaussian') \cr
+#'                    Default: c("beta", "gamma", "gaussian")
 #' @param eval_metric The distribution evaluation metric names. \cr
 #'                    Possible options: ('aic', 'bic', 'loglik') \cr
 #'                    Default: "aic"
@@ -108,20 +118,25 @@ build_formula <- function(
 #' @export
 estimate_distribution <- function(
   x, 
-  distr_names = c("beta", "gamma", "norm"),
-  eval_metric = "aic"
+  distr_options = c("beta", "gamma", "gaussian"),
+  eval_metric   = "aic"
 ) {
   # argument input control 
   stopifnot("`x` must be a numeric" = is.numeric(x))
-  stopifnot("`distr_names` must be a recognized distribution name" = 
-    is.character(distr_names) && 
-    all(distr_names %in% c("beta", "gamma", "norm")))
+  stopifnot("`distr_options` must be a character class" = 
+    is.character(distr_options))
+  rlang::arg_match(distr_options, values = FAMILY_FUNCTION_NAMES, multiple = TRUE)
   stopifnot("`eval_metric` must be a recognized evauluation metric" = 
-    is.character(eval_metric) && length(eval_metric) == 1 && 
-    any(eval_metric %in% c("aic", "bic", "loglik")))
+    is.character(eval_metric) && length(eval_metric) == 1)
+  rlang::arg_match(eval_metric, values = c("aic", "bic", "loglik"))
+
+  # edit "gaussian" distribution name to "norm"
+  if (any(distr_options == "gaussian")) {
+    distr_options[distr_options == "gaussian"] <- "norm"
+  }
 
   # estimate distribution function based on evaluation metric
-  distr_eval <- sapply(distr_names, function(d) {
+  distr_eval <- sapply(distr_options, function(d) {
     tryCatch({invisible(utils::capture.output(
       y <- fitdistrplus::fitdist(x, d)[[eval_metric]]))
       y
@@ -133,18 +148,12 @@ estimate_distribution <- function(
   # determine best distribution based on evaluation metric 
   eval_func  <- ifelse(eval_metric == "loglik", which.max, which.min)
   best_distr <- names(distr_eval)[eval_func(distr_eval)]
-
+  
   # based on evaluated distribution, return family function
-  if (best_distr == "beta") {
-    linkfamily <- mgcv::betar(link = "logit")
-  } else if (best_distr == "gamma") {
-    linkfamily <- stats::Gamma(link = "logit")
-  } else if (best_distr == "norm") {
-    linkfamily <- stats::gaussian(link = "identity")
-  }
+  linkfamily <- `_get_family_function`(best_distr)
+
   return(linkfamily)
 }
-
 
 #' Estimate smoothing basis dimensions for GAM smoothers.
 #' 
@@ -163,17 +172,14 @@ estimate_smooth_basis <- function(...) {
   UseMethod("estimate_smooth_basis")
 }
 
+#' @rdname estimate_smooth_basis
 #' @export
-estimate_smooth_basis.default <- function() {
-
-}
-
-
-#' @export
-estimate_smooth_basis.formula <- function(
-  formula, 
+estimate_smooth_basis.default <- function(
+  target, 
+  smooth_terms, 
   df, 
-  k_values   = 1:10,
+  regressors = NULL, 
+  k_values   = 1:50,
   kindex_thr = 0.95, 
   pvalue_thr = 0.05, 
   bs         = "tp",
@@ -182,28 +188,38 @@ estimate_smooth_basis.formula <- function(
   discrete   = TRUE, 
   ...
 ) {
-  # argument input control
-  stopifnot("`formula` must be a formula class" = class(formula) == "formula")
+  # argument input control 
+  stopifnot("`target` must be a character" = is.character(target))
+  stopifnot("`smooth_terms` must be a character vector" = is.character(smooth_terms))
   stopifnot("`df` must be a class data.frame or tibble" = 
-    any(class(df) %in% c("data.frame", "tbl_df")))
+    class(df) %in% c("data.frame", "tbl_df"))
+  if (!is.null(regressors)) {
+    stopifnot("`regressors` must be a character class" = is.character(regressors))
+  }
   stopifnot("`k_values` must be numeric values" = is.numeric(k_values))
   stopifnot("`kindex_thr` must be a numeric value" = 
     length(kindex_thr) == 1 && is.numeric(kindex_thr))
   stopifnot("`pvalue_thr` must be a numeric value" = 
     length(pvalue_thr) == 1 && is.numeric(pvalue_thr))
-  stopifnot("`bs` must be a recognized character value" = 
-    length(bs) == 1 && is.character(bs) && 
-    any(bs %in% c("tp", "ts", "ds", "cr", "cs", "cc", "sos", "bs", "ps", "cp", 
-                  "mrf", "gp", "so", "sw", "sf", "ad", "sz", "fs")))
-  if (is.character(family)) { family <- stringr::str_to_lower(family) }
-  stopifnot("`family` must be a recognized family or a family class function" = 
-    any(family %in% c("auto", "gamma", "beta", "norm")) || 
-    any(class(family) %in% c("family", "extended.family")))
-  stopifnot("`method` must be a recognized method" = 
-    any(method %in% c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")))
+  rlang::arg_match(bs, values = c("tp", "ts", "ds", "cr", "cs", "cc", "sos", 
+    "bs", "ps", "cp", "mrf", "gp", "so", "sw", "sf", "ad", "sz", "fs"))
+  if (is.character(family)) { 
+    family <- stringr::str_to_lower(family) 
+    rlang::arg_match(family, values = c("auto", FAMILY_FUNCTION_NAMES))
+  } else {
+    stopifnot("`family` must be a family class function" = 
+      class(family) %in% c("family", "extended.family"))
+  }
+  rlang::arg_match(method, values = MGCV_METHODS)
   stopifnot("`discrete` must be a logical" = is.logical(discrete))
 
-  # define default arguments for estimate smooth basis
+  # prepare regressor terms 
+  regressor_terms <- regressors
+  if (!is.null(regressor_terms)) {
+    regressor_terms <- stringr::str_c(regressor_terms, collapse = " + ")
+  }
+
+  # prepare default arguments for estimate smooth basis
   default_args <- list(
     k_values   = k_values,
     kindex_thr = kindex_thr, 
@@ -211,23 +227,19 @@ estimate_smooth_basis.formula <- function(
     kwargs     = list("bs" = bs)
   )
 
-  # extract formula terms
-  formula_terms <- labels(terms(formula))
-    
-  # determine which terms have smoothers from the formula 
-  f_terms <- stringr::str_replace_all(formula_terms, "\\s", "")
-  smooth_index <- (stringr::str_detect(f_terms, "^(s|te|ti|t2)\\(.+\\)$") &
-    stringr::str_detect(f_terms, "bs=['\"]re['\"]", negate = TRUE))
-  
-  # define the target, regressor, and smoothing terms
-  target_term     <- all.vars(formula)[attr(stats::terms(formula), "response")]
-  regressor_terms <- f_terms[!smooth_index]
-  smooth_terms    <- f_terms[smooth_index]
+  # prepare link family function
+  if (is.character(family) && family == "auto") {
+    linkfamily <- estimate_distribution(df[[target]])
+  } else if (is.character(family)) {
+    linkfamily <- `_get_family_function`(family)
+  } else {
+    linkfamily <- family
+  }
 
   # estimate smoothing basis for each smooth term
   k_estimates <- tibble::tibble() # create empty tibble
   est_smooth_terms <- rep("", length(smooth_terms)) # initialize
-  for (i in 1:length(smooth_terms)) {
+  for (i in 1:length(smooth_terms)) { # for each smooth term
     # extract information from the current smooth term (using a defused call)
     defused_call     <- rlang::parse_expr(smooth_terms[i])
     smooth_func      <- rlang::call_name(defused_call)
@@ -244,8 +256,8 @@ estimate_smooth_basis.formula <- function(
     smooth_vars <- stringr::str_flatten_comma(smooth_vars)
 
     # define smooth function additional arguments
-    curr_args <- default_args # initialize
-    var_index <- smooth_arg_names %in% c("", "by")
+    curr_args <- default_args # initialize with default arguments
+    var_index <- smooth_arg_names %in% c("", "by") # variable args to skip
     if (length(smooth_args) > sum(var_index)) { # if additional smoothing arguments
       for (j in (sum(var_index) + 1):length(smooth_args)) {
         curr_key <- smooth_arg_names[j] # extract argument name
@@ -286,7 +298,7 @@ estimate_smooth_basis.formula <- function(
       # define formula with regressor terms and ONLY current smoothing term
       curr_formula <- stats::reformulate(
         termlabels = c(regressor_terms, curr_smooth_term), 
-        response = target_term, 
+        response = target, 
         env = .GlobalEnv
       )
 
@@ -324,7 +336,55 @@ estimate_smooth_basis.formula <- function(
 
   return(list(est_terms = est_smooth_terms, k_estimates = k_estimates))
 }
+
+#' @rdname estimate_smooth_basis
+#' @export
+estimate_smooth_basis.formula <- function(
+  formula, 
+  df, 
+  k_values   = 1:10,
+  kindex_thr = 0.95, 
+  pvalue_thr = 0.05, 
+  bs         = "tp",
+  family     = "auto", 
+  method     = "fREML",
+  discrete   = TRUE, 
+  ...
+) {
+  # argument input control
+  stopifnot("`formula` must be a formula class" = class(formula) == "formula")
+
+  # extract formula terms
+  formula_terms <- `_get_formula_terms`(formula)
+    
+  # determine which terms have smoothers from the formula 
+  formula_terms <- stringr::str_replace_all(formula_terms, "\\s", "")
+  smooth_index  <- (stringr::str_detect(formula_terms, 
+    "^(s|te|ti|t2)\\(.+\\)$") &
+    stringr::str_detect(f_terms, "bs=['\"]re['\"]", negate = TRUE))
   
+  # define the target, regressor, and smoothing terms
+  target       <- `_get_formula_target`(formula)
+  regressors   <- formula_terms[!smooth_index]
+  smooth_terms <- formula_terms[smooth_index]
+
+  # prepare regressors if empty)
+  if (length(regressors) == 0) { regressors <- NULL }
+
+  estimate_smooth_basis.default(
+    target       = target, 
+    smooth_terms = smooth_terms, 
+    regressors   = regressors, 
+    df           = df, 
+    k_values     = k_values, 
+    kindex_thr   = kindex_thr, 
+    pvalue_thr   = pvalue_thr, 
+    bs           = bs,
+    family       = family,
+    method       = method,
+    ...          = ...
+  )
+} 
 
 #' Fit a GAM model.
 #' 
@@ -414,42 +474,115 @@ fit_gam <- function(...) {
 
 #' @export
 fit_gam.default <- function(
-  formula, 
+  target, 
   df, 
-  node_col = "nodeID", 
-  autocor  = TRUE, 
-  family   = "auto", 
-  method   = "fREML",
-  discrete = TRUE, 
+  regressors      = NULL, 
+  node_col        = "nodeID", 
+  node_k          = "auto", 
+  node_group      = NULL, 
+  participant_col = "subjectID", 
+  autocor         = TRUE, 
+  family          = "auto", 
+  method          = "fREML",
+  discrete        = TRUE, 
   ...
 ) {
   # argument input control
-  stopifnot("`formula` must be a class formula" = class(formula) == "formula")
+  stopifnot("`target` must be a character" = is.character(target))
+  stopifnot("There can be only one `target`" = length(target) == 1)
   stopifnot("`df` must be a class data.frame or tibble" = 
-    any(class(df) %in% c("data.frame", "tbl_df")))
+    class(df) %in% c("data.frame", "tbl_df"))
+  if (!is.null(regressors)) {
+    stopifnot("`regressors` must be a character" = is.character(regressors))
+  }
   stopifnot("`node_col` must be a character" = is.character(node_col))
+  if (is.character(node_k)) {
+    stopifnot("`node_k` must be 'auto' if character" = node_k == "auto")
+  } else {
+    stopifnot("`node_k` must be a numeric" = is.numeric(node_k))
+    stopifnot("`node_k` must be a integer value" = (node_k %% 1) == 0)
+  }
+  if (!is.null(node_group)) {
+    stopifnot("`node_group` must be a character" = is.character(node_group))
+    stopifnot("There can be only one `node_group`" = length(node_group) == 1)
+  }
+  stopifnot("`participant_col` must be a character" = is.character(participant_col))
   stopifnot("`autocor` must be a logical" = is.logical(autocor))
-  if (is.character(family)) { family <- stringr::str_to_lower(family) }
-  stopifnot("`family` must be a recognized family or a family class function" = 
-    any(family %in% c("gamma", "beta", "norm")) || 
-    any(class(family) %in% c("family", "extended.family")))
-  stopifnot("`method` must be a recognized method" = 
-    any(method %in% c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")))
+  if (is.character(family)) { 
+    family <- stringr::str_to_lower(family) 
+    rlang::arg_match(family, values = c("auto", FAMILY_FUNCTION_NAMES))
+  } else {
+    stopifnot("`family` must be a family class function" = 
+      class(family) %in% c("family", "extended.family"))
+  }
+  rlang::arg_match(method, values = MGCV_METHODS)
   stopifnot("`discrete` must be a logical" = is.logical(discrete))
-  
+
+  # prepare variables arguments
+  vargs <- list(...) # listify variable argument
+  mgcv_kwargs <- `_get_function_kwargs`(mgcv::bam, vargs)
+
   # define GAM linkfamily function
-  if (is.character(family)) {
-    # set linkfamily based on family character
-    if (family == "beta") {
-      linkfamily <- mgcv::betar(link = "logit")
-    } else if (family == "gamma") {
-      linkfamily <- stats::Gamma(link = "logit")
-    } else if (family == "norm" ) {
-      linkfamily <- stats::gaussian(link = "identity")
-    }
+  if (is.character(family) && family == "auto") {
+    values <- `_get_formula_target`(formula)
+    linkfamily <- estimate_distribution(values)
+  } else if (is.character(family)) {
+    linkfamily <- `_get_family_function`(family)
   } else { # family function provided
     linkfamily <- family
   }
+
+  # if estimating node smoother
+  if (node_k == "auto") {
+
+    # define default formula
+    base_formula <- build_formula(
+      target          = target, 
+      regressors      = regressors, 
+      node_col        = node_col, 
+      node_group      = node_group, 
+      participant_col = participant_col
+    )
+
+    base_terms <- `_get_formula_terms`(base_formula)
+    node_index <- startsWith(base_terms, sprintf("s(%s", node_col))
+    node_terms <- base_terms[node_index]
+    regressors <- base_terms[!node_index]
+
+    if (length(regressors) == 0) { regressors <- NULL }
+
+    est_kwargs <- `_get_function_kwargs`(estimate_smooth_basis.default, vargs)
+    est_kwargs <- c(list(
+      target = target, 
+      smooth_terms = node_terms, 
+      df = df_sarica,
+      regressors = regressors, 
+      family = linkfamily, 
+      method = method, 
+      discrete = discrete
+    ), est_kwargs)
+
+    node_terms <- do.call(estimate_smooth_basis.default, est_kwargs)$est_terms
+
+    formula <- stats::reformulate(
+      termlabels = c(regressors, node_terms), 
+      response = target, 
+      env = .GlobalEnv
+    )
+
+
+  } else {
+    # define GAM formula 
+    formula <- build_formula(
+      target = target, 
+      regressors = regressors, 
+      node_col = node_col, 
+      node_k = node_k, 
+      node_group = node_group, 
+      participant_col = participant_col
+    )
+  }
+
 
   if (autocor) {
     # define AR1.start as first nodeID position
@@ -527,56 +660,6 @@ fit_gam.formula <- function(
   )
 }
 
-#' @rdname fit_gam
-#' @export
-fit_gam.character <- function(
-  target, 
-  df, 
-  regressors = NULL, 
-  node_k = "auto", 
-  node_col = "nodeID", 
-  node_group = NULL, 
-  participant_col = "subjectID", 
-  autocor = TRUE, 
-  family = "auto", 
-  method = "fREML",
-  discrete = TRUE, 
-  ...
-) {
-  # if automatically determining linkfamily function 
-  if (family == "auto") {
-    family <- tractable::estimate_distribution(df[[target]], 
-      distr_names = c("beta", "gamma", "norm"))
-  }
-
-  # if automatically determining node smoothing basis
-  if (node_k == "auto") {
-    node_k <- estimate_smooth_basis.default(
-
-    )
-  }
-
-  # use build formula to create formula string
-  formula <- build_formula(
-    target = target, 
-    regressors = regressors, 
-    node_k = node_k, 
-    node_col = node_col, 
-    node_group = node_group, 
-    participant_col = participant_col
-  )
-
-  # call default fit_gam() method
-  fit_gam.default(
-    formula  = formula, 
-    df       = df, 
-    autocor  = autocor, 
-    family   = family, 
-    method   = method,
-    discrete = discrete, 
-    ...      = ...
-  )
-}
 
 #' Save GAM model outputs.
 #' 
@@ -627,4 +710,33 @@ save_gam <- function(
       file = save_name,
     )
   }
+}
+
+
+# Helper Functions that are NOT exported
+`_get_formula_target` <- function(formula) {
+  return(all.vars(formula)[attr(stats::terms(formula), "response")])
+}
+
+`_get_formula_terms` <- function(formula) {
+  return(labels(terms(formula)))
+}
+  
+`_get_family_function` <- function(distr_name) {
+  rlang::arg_match(distr_name, values = FAMILY_FUNCTION_NAMES)
+  family_func <- switch(distr_name, 
+    "beta"     = mgcv::betar(link = "logit"), 
+    "gamma"    = stats::Gamma(link = "logit"), 
+    "gaussian" = stats::gaussian(link = "identity"),
+    "norm"     = stats::gaussian(link = "identity")
+  )
+  return(family_func)
+}
+
+`_get_function_kwargs` <- function(func, vargs) {
+  func_kwargs <- rlang::fn_fmls_names(func)
+  func_kwargs <- sapply(func_kwargs, function(x) vargs[[x]])
+  func_kwargs <- func_kwargs[!sapply(func_kwargs, is.null)]
+  if (length(func_kwargs) == 0) { return(NULL) }
+  return(func_kwargs)
 }

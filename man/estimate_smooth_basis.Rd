@@ -2,9 +2,39 @@
 % Please edit documentation in R/fit-models.R
 \name{estimate_smooth_basis}
 \alias{estimate_smooth_basis}
+\alias{estimate_smooth_basis.default}
+\alias{estimate_smooth_basis.formula}
 \title{Estimate smoothing basis dimensions for GAM smoothers.}
 \usage{
 estimate_smooth_basis(...)
+
+\method{estimate_smooth_basis}{default}(
+  target,
+  smooth_terms,
+  df,
+  regressors = NULL,
+  k_values = 1:50,
+  kindex_thr = 0.95,
+  pvalue_thr = 0.05,
+  bs = "tp",
+  family = "auto",
+  method = "fREML",
+  discrete = TRUE,
+  ...
+)
+
+\method{estimate_smooth_basis}{formula}(
+  formula,
+  df,
+  k_values = 1:10,
+  kindex_thr = 0.95,
+  pvalue_thr = 0.05,
+  bs = "tp",
+  family = "auto",
+  method = "fREML",
+  discrete = TRUE,
+  ...
+)
 }
 \arguments{
 \item{target}{The column name that encodes the metric to model.}
