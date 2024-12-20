@@ -19,39 +19,12 @@ fit_gam(...)
 )
 }
 \arguments{
-\item{...}{Further keyword arguments passed to \code{\link[mgcv:bam]{mgcv::bam()}}}
-
 \item{formula}{Explicit formula to use for the GAM.}
 
 \item{df}{The data frame contains GAM metrics.}
 
 \item{node_col}{The column name that encodes tract node positions.
 Default: "nodeID".}
-
-\item{autocor}{Whether to account for autocorrelation in the tract
-profile with the AR(1) autocorrelation model.
-Default: TRUE.}
-
-\item{family}{Name or function of the distribution to use for the
-GAM dependent variable.
-\cr \cr
-If name, possible values: ('auto', 'beta', 'gamma',
-'norm'/'gaussian'). If 'auto', will automatically
-determine the distribution of best fit between
-\code{\link[mgcv:Beta]{mgcv::betar()}} ('beta'), \code{\link[stats:family]{stats::Gamma()}} ('gamma'),
-or \code{\link[stats:family]{stats::gaussian()}} ('norm' | 'gaussian'). \cr
-Default: 'auto'
-\cr \cr
-See \code{\link[stats:family]{stats::family()}} or \code{\link[mgcv:family.mgcv]{mgcv::family.mgcv()}} for
-more \code{family} or \code{extended.family} functions.}
-
-\item{method}{GAM fitting method, string; passed to \code{\link[mgcv:bam]{mgcv::bam()}}.
-Default: "fREML"}
-
-\item{discrete}{With method = "fREML" it is possible to discretize
-covariates for storage and efficiency reasons. See
-\code{\link[mgcv:bam]{mgcv::bam()}} for more information.
-Default: TRUE}
 
 \item{target}{The column name that encodes the metric to model.}
 
@@ -65,14 +38,10 @@ smoother. If \code{node_group}, the basis value is applied
 to the group as well. Default: 'auto'.}
 
 \item{node_group}{The column name to group the tract node smooth by
-(i.e., \code{s(node_col, by = node_group, k = node_k)}).
-Default: NULL.}
-
-\item{participant_col}{The column name that encodes participant ID.
-Default: "subjectID".}
+(i.e., \code{s(node_col, by = node_group, k = node_k)}).}
 }
 \value{
-Fitted GAM model
+Fit GAM model
 }
 \description{
 Function used to fit a GAM formula from an explicit formula or builds a

@@ -14,9 +14,9 @@ estimate_smooth_basis(...)
   df,
   regressors = NULL,
   k_values = 1:50,
+  bs = "tp",
   kindex_thr = 0.95,
   pvalue_thr = 0.05,
-  bs = "tp",
   family = "auto",
   method = "fREML",
   discrete = TRUE,
@@ -26,10 +26,10 @@ estimate_smooth_basis(...)
 \method{estimate_smooth_basis}{formula}(
   formula,
   df,
-  k_values = 1:10,
+  k_values = 1:50,
+  bs = "tp",
   kindex_thr = 0.95,
   pvalue_thr = 0.05,
-  bs = "tp",
   family = "auto",
   method = "fREML",
   discrete = TRUE,
@@ -37,18 +37,111 @@ estimate_smooth_basis(...)
 )
 }
 \arguments{
+\item{...}{Further keyword arguments to be passed to
+\link[mgcv:bam]{bam}}
+
 \item{target}{The column name that encodes the metric to model.}
 
-\item{regressors}{Column name or list of column names to use as
-regressors, not including nodes smoothing terms and
-the participant random effect. This list can also
-include smoothing terms. Default: NULL.}
+\item{smooth_terms}{List of smooth terms to estimate smoothing basis. See
+details for examples of smoothing terms.}
 
-\item{family}{The family}
+\item{df}{The data frame that contains the GAM metrics.}
+
+\item{regressors}{Column name or list of column names to use as
+regressors. This list can also include smoothing terms.
+Default: NULL.}
+
+\item{k_values}{A list of k values to consider. Default: 1:50}
+
+\item{bs}{The name of the default smoothing basis. Default: "tp"}
+
+\item{kindex_thr}{The k-index threshold. Default: 0.95}
+
+\item{pvalue_thr}{The p-value threshold. Default: 0.05}
+
+\item{family}{Name or family function of the distribution to use for
+modeling the GAM dependent variable.
+\itemize{
+\item If name, the possible values: ("auto", "beta",
+"gamma", "gaussian").
+\item If "auto", will automatically determine the
+distribution of best fit between
+\link[mgcv:Beta]{mgcv::betar} ("beta"), \link[stats:family]{stats::Gamma}
+("gamma"), or \link[stats:family]{stats::gaussian} ("gaussian").
+\item If function, see \link[stats:family]{family}
+or \link[mgcv:family.mgcv]{family.mgcv} for
+more \code{family} or \code{extended.family}
+class functions.
+}}
+
+\item{method}{GAM fitting method passed to \link[mgcv:bam]{bam}.
+Default: "fREML"}
+
+\item{discrete}{With \code{method} is "fREML" it is possible to
+discretize covariates for storage and efficiency
+reasons. See \link[mgcv:bam]{bam} for more information.
+Default: TRUE}
 }
 \value{
-description
+A list containing two items: \tabular{llll}{
+\tab \code{est_terms} \tab \tab List of smoothing terms with "best" estimated
+smoothing basis. \cr
+\tab \code{k_estimates} \tab \tab A data frame with contains all estimated
+smoothing terms and corresponding k-index and p-values. \cr
+}
 }
 \description{
-asdfasdfa
+Function used to estimate smoothing basis, \code{k}, for each smooth term.
+}
+\details{
+\subsection{Smooth terms specification}{
+
+Smooth terms can be specified as: \cr
+
+\code{s(x)} \cr
+The smooth term will be estimated with the defaults from \code{k_values} and
+\code{bs}. \cr \cr
+\code{s(x, k = 1:10, bs = 'cp')} \cr
+The smooth term will be estimated with \code{k} values 1 to 10 and a basis
+set of 'cp'. \cr \cr
+\code{s(x, by = group, k = c(2, 7))} \cr
+The smooth term will estimate with \code{k} value of 2 and 7 and using the
+\code{by} variable \code{group}. \cr \cr
+\code{s(x, y, bs = 'fs', m = 3)} \cr
+The smooth term over two variables, \code{x} and \code{y}, will be estimated
+with the default \code{k_values} with additional arguments of basis set of
+'fs' and \code{m} of 3. \cr
+
+Not shown are other mgcv smoothers, such as \link[mgcv:te]{te}, \link[mgcv:te]{ti},
+and \link[mgcv:t2]{t2}, which are also available.
+}
+
+\subsection{Estimation process}{
+
+For each \code{smooth_term}, the function will iteratively fit a GAM model
+following the formula while incrementing through \code{k_values}:
+
+\tabular{lll}{ \tab \tab \code{target ~ regressor_terms + smooth_term} }
+
+where \code{target} is the dependent variable, \code{regressor_terms} are the
+additive effects that should be accounted for while estimating the smoothing
+term, and \code{smooth_term} is the smoothing term that is currently being
+estimated.
+}
+
+\subsection{Stopping criterion}{
+
+The estimation process has two stopping criterion:
+
+\itemize{
+\item The procedure will stop once the k-index value exceeds
+\code{kindex_thr} \strong{AND} the p-value exceeds the
+\code{pvalue_thr}. \cr
+\item If the thresholds are not met, the procedure will stop once it runs
+through all of the \code{k_values}. \cr
+}
+}
+}
+\seealso{
+\link[mgcv:choose.k]{choose.k}
 }

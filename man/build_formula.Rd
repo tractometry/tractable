@@ -8,7 +8,7 @@ build_formula(
   target,
   regressors = NULL,
   node_col = "nodeID",
-  node_k = 10,
+  node_k = NULL,
   node_group = NULL,
   participant_col = "subjectID"
 )
@@ -17,16 +17,16 @@ build_formula(
 \item{target}{The column name that encodes the metric to model.}
 
 \item{regressors}{Column name or list of column names to use as
-regressors, not including nodes smoothing terms and
-the participant random effect. This list can also
-include smoothing terms. Default: NULL.}
+regressors, not including node smoothing terms and
+the participant effects. This list can also include
+smoothing terms. Default: NULL.}
 
 \item{node_col}{The column name that encodes tract node positions.
 Default: "nodeID".}
 
 \item{node_k}{The basis dimensions used to represent the node
-smoother. If \code{node_group}, the basis value is applied
-to the group as well. Default: 10.}
+smoother. If \code{node_group}, the basis value is
+applied to the group as well. Default: NULL}
 
 \item{node_group}{The column name to group the tract node smooth by.
 Default: NULL.}
@@ -46,8 +46,10 @@ Any regressor terms are included as additive effects.
 \examples{
 formula <- build_formula(target = "dti_fa", node_k = 40)
 
-formula <- build_formula(target = "dki_md",
-                         regressors = c("group", "sex"), 
-                         node_k = 32, 
-                         node_group = "group")
+formula <- build_formula(
+  target = "dki_md",
+  regressors = c("group", "sex"), 
+  node_k = 32, 
+  node_group = "group"
+)
 }

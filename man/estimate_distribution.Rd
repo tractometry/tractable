@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit-models.R
 \name{estimate_distribution}
 \alias{estimate_distribution}
-\title{Estimate distribution function.}
+\title{Estimate distribution function from values.}
 \usage{
 estimate_distribution(
   x,
@@ -14,21 +14,18 @@ estimate_distribution(
 \item{x}{A numeric vector that will be evaluated.}
 
 \item{eval_metric}{The distribution evaluation metric names. \cr
-Possible options: ('aic', 'bic', 'loglik') \cr
+Possible options: ("aic", "bic", "loglik") \cr
 Default: "aic"}
 
 \item{distr_names}{A vector of distribution names to evaluate the values. \cr
-Possible options: ('beta', 'gamma', 'gaussian') \cr
+Possible options: ("beta", "gamma", "gaussian") \cr
 Default: c("beta", "gamma", "gaussian")}
 }
 \value{
-The best fitting family function to the values.
+The estimated \code{family} or \code{extended.family} function.
 }
 \description{
-Estimate distribution function.
-}
-\details{
-See \code{\link[fitdistrplus:fitdist]{fitdistrplus::fitdist()}} for additional information.
+Estimate distribution function from values.
 }
 \examples{
 x <- rnorm(1000)
@@ -36,4 +33,7 @@ estimate_distribution(x)
 
 x <- rgamma(1000, shape = 12)
 estimate_distribution(x)
+}
+\seealso{
+\link[fitdistrplus:fitdist]{fitdistrplus::fitdist}
 }
