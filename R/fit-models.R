@@ -3,6 +3,7 @@
 FAMILY_FUNCTION_NAMES <- c("beta", "gamma" , "gaussian", "norm")
 MGCV_METHODS <- c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")
 
+
 #' Build a GAM formula.
 #' 
 #' @description
@@ -32,9 +33,9 @@ MGCV_METHODS <- c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")
 #' formula <- build_formula(target = "dti_fa", node_k = 40)
 #' 
 #' formula <- build_formula(
-#'   target = "dki_md",
+#'   target     = "dki_md",
 #'   regressors = c("group", "sex"), 
-#'   node_k = 32, 
+#'   node_k     = 32, 
 #'   node_group = "group"
 #' )
 #' @export
@@ -65,19 +66,19 @@ build_formula <- function(
     is.character(participant_col))
 
   # define node smooth term (with or without group)
-  if(!is.null(node_k) && !is.null(node_group)) {
-    node_smoother <- sprintf("s(%s, by = %s, k = %d)", 
+  if(!is.null(node_group) && !is.null(node_k)) {
+    node_smoother <- sprintf("s(%s, by = %s, bs = 'fs', k = %d)", 
       node_col, node_group, node_k)
+  } else if (!is.null(node_group)) {
+    node_smoother <- sprintf("s(%s, by = %s, bs = 'fs')", node_col, node_group)
   } else if (!is.null(node_k)) {
     node_smoother <- sprintf("s(%s, k = %d)", node_col, node_k)
   } else {
     node_smoother <- sprintf("s(%s)", node_col)
   }
 
-  # define random effects (intercept and node smooth) of participant
+  # define random effects (intercept) of participant
   participant_random_effect <- sprintf("s(%s, bs = 're')", participant_col)
-  participant_node_smooth <- sprintf("s(%s, by = %s, bs = 'fs')", 
-    node_col, participant_col)
 
   # define additional regressors (additive effects ONLY)
   if (!is.null(regressors)) { 
@@ -87,8 +88,7 @@ build_formula <- function(
 
   # define formula (in global environment)
   formula <- stats::reformulate(
-    termlabels = c(regressors, node_smoother, participant_random_effect,
-                   participant_node_smooth), 
+    termlabels = c(regressors, node_smoother, participant_random_effect), 
     response = target, 
     env = .GlobalEnv
   )
@@ -146,7 +146,12 @@ estimate_distribution <- function(
       NA_real_
     })
   })
-  
+
+  # error condition: all NAs for considered distributions
+  stopifnot("All distributions considered evaluated with errors or NAs. 
+    Please provide different distriubutions to `distr_options`." = 
+    !all(is.na(distr_eval)))
+
   # determine best distribution based on evaluation metric 
   eval_func  <- ifelse(eval_metric == "loglik", which.max, which.min)
   best_distr <- names(distr_eval)[eval_func(distr_eval)]
@@ -156,6 +161,7 @@ estimate_distribution <- function(
 
   return(linkfamily)
 }
+
 
 #' Estimate smoothing basis dimensions for GAM smoothers.
 #' 
@@ -441,7 +447,7 @@ estimate_smooth_basis.formula <- function(
   formula_terms <- stringr::str_replace_all(formula_terms, "\\s", "")
   smooth_index  <- (stringr::str_detect(formula_terms, 
     "^(s|te|ti|t2)\\(.+\\)$") &
-    stringr::str_detect(f_terms, "bs=['\"]re['\"]", negate = TRUE))
+    stringr::str_detect(formula_terms, "bs=['\"]re['\"]", negate = TRUE))
   
   # define the target, regressor, and smoothing terms
   target       <- `_get_formula_target`(formula)
@@ -465,6 +471,7 @@ estimate_smooth_basis.formula <- function(
     ...          = ...
   )
 } 
+
 
 #' Fit a GAM model.
 #' 
@@ -579,8 +586,7 @@ fit_gam.default <- function(
 
   # define GAM linkfamily function
   if (is.character(family) && family == "auto") {
-    values <- `_get_formula_target`(formula)
-    linkfamily <- estimate_distribution(values)
+    linkfamily <- estimate_distribution(df[[target]])
   } else if (is.character(family)) {
     linkfamily <- `_get_family_function`(family)
   } else { # family function provided
@@ -589,8 +595,7 @@ fit_gam.default <- function(
 
   # if estimating node smoother
   if (node_k == "auto") {
-
-    # define default formula
+    # define default formula with given variables
     base_formula <- build_formula(
       target          = target, 
       regressors      = regressors, 
@@ -599,40 +604,42 @@ fit_gam.default <- function(
       participant_col = participant_col
     )
 
+    # extract node term (s(node_col)) and regressor terms (everything else)
     base_terms <- `_get_formula_terms`(base_formula)
     node_index <- startsWith(base_terms, sprintf("s(%s", node_col))
     node_terms <- base_terms[node_index]
     regressors <- base_terms[!node_index]
-
     if (length(regressors) == 0) { regressors <- NULL }
 
+    # prepare estimate_smooth_basis arguments
     est_kwargs <- `_get_function_kwargs`(estimate_smooth_basis.default, vargs)
     est_kwargs <- c(list(
-      target = target, 
+      target       = target, 
       smooth_terms = node_terms, 
-      df = df_sarica,
-      regressors = regressors, 
-      family = linkfamily, 
-      method = method, 
-      discrete = discrete
+      df           = df, 
+      regressors   = regressors, 
+      family       = linkfamily, 
+      method       = method, 
+      discrete     = discrete
     ), est_kwargs)
 
+    # estimate node term smoothing basis
     node_terms <- do.call(estimate_smooth_basis.default, est_kwargs)$est_terms
 
+    # reformulate the formula with estimated node smoother
     formula <- stats::reformulate(
       termlabels = c(regressors, node_terms), 
       response = target, 
       env = .GlobalEnv
     )
 
-
   } else {
     # define GAM formula with the provided inputs
     formula <- build_formula(
-      target = target, 
+      target     = target, 
       regressors = regressors, 
-      node_col = node_col, 
-      node_k = node_k, 
+      node_col   = node_col, 
+      node_k     = node_k, 
       node_group = node_group, 
       participant_col = participant_col
     )
@@ -652,7 +659,7 @@ fit_gam.default <- function(
       rho      = 0, 
       AR.start = ar_start, 
       discrete = discrete, 
-      ...      = ...
+      ...      = mgcv_kwargs
     )
 
     # determine autocorrelation parameter, rho
@@ -664,20 +671,20 @@ fit_gam.default <- function(
       family   = linkfamily, 
       data     = df, 
       method   = method, 
-      rho      = 0, 
+      rho      = rho, 
       AR.start = ar_start, 
       discrete = discrete, 
-      ...      = ...
+      ...      = mgcv_kwargs
     )
   } else {
-    # fit GAM model 
+    # fit GAM model without autocorrelations
     gam_fit <- mgcv::bam(
       formula  = formula,
       family   = linkfamily, 
-      data     = data, 
+      data     = df, 
       method   = method, 
       discrete = discrete, 
-      ...      = ...
+      ...      = mgcv_kwargs
     )
   }
 
@@ -787,7 +794,7 @@ save_gam <- function(
   )
   return(family_func)
 }
-q
+
 `_get_function_kwargs` <- function(func, vargs) {
   func_kwargs <- rlang::fn_fmls_names(func)
   func_kwargs <- sapply(func_kwargs, function(x) vargs[[x]])
