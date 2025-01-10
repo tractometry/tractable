@@ -4,20 +4,12 @@
 \alias{save_gam}
 \title{Save GAM model outputs.}
 \usage{
-save_gam(
-  gam_model,
-  file,
-  model_rdata = TRUE,
-  model_summary = TRUE,
-  model_check = FALSE
-)
+save_gam(gam_model, output_file, model_summary = TRUE, model_check = FALSE)
 }
 \arguments{
 \item{gam_model}{asdfasdf}
 
-\item{file}{asdfasdf}
-
-\item{model_rdata}{asdfasdf}
+\item{output_file}{asdfasdf}
 
 \item{model_summary}{asdfasdf}
 

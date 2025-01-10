@@ -47,9 +47,9 @@ Any regressor terms are included as additive effects.
 formula <- build_formula(target = "dti_fa", node_k = 40)
 
 formula <- build_formula(
-  target = "dki_md",
+  target     = "dki_md",
   regressors = c("group", "sex"), 
-  node_k = 32, 
+  node_k     = 32, 
   node_group = "group"
 )
 }

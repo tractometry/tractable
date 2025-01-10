@@ -558,6 +558,8 @@ fit_gam.default <- function(
     stopifnot("`regressors` must be a character" = is.character(regressors))
   }
   stopifnot("`node_col` must be a character" = is.character(node_col))
+  stopifnot("`node_col` must be a column in the dataframe." = 
+    node_col %in% names(df))
   if (is.character(node_k)) {
     stopifnot("`node_k` must be 'auto' if character" = node_k == "auto")
   } else {
@@ -604,11 +606,11 @@ fit_gam.default <- function(
       participant_col = participant_col
     )
 
-    # extract node term (s(node_col)) and regressor terms (everything else)
-    base_terms <- `_get_formula_terms`(base_formula)
-    node_index <- startsWith(base_terms, sprintf("s(%s", node_col))
-    node_terms <- base_terms[node_index]
-    regressors <- base_terms[!node_index]
+    # extract node term (smoother(node_col)) and regressor terms (everything else)
+    formula_terms <- `_get_formula_terms`(base_formula)
+    node_index <- stringr::str_starts(formula_terms, sprintf(".+\\(%s", node_col))
+    node_terms <- formula_terms[node_index]
+    regressors <- formula_terms[!node_index]
     if (length(regressors) == 0) { regressors <- NULL }
 
     # prepare estimate_smooth_basis arguments
@@ -627,8 +629,9 @@ fit_gam.default <- function(
     node_terms <- do.call(estimate_smooth_basis.default, est_kwargs)$est_terms
 
     # reformulate the formula with estimated node smoother
+    formula_terms[node_index] <- node_terms
     formula <- stats::reformulate(
-      termlabels = c(regressors, node_terms), 
+      termlabels = formula_terms, 
       response = target, 
       env = .GlobalEnv
     )
@@ -703,23 +706,124 @@ fit_gam.formula <- function(
   discrete = TRUE, 
   ...
 ) {
-  # if automatically determining linkfamily function 
-  if (family == "auto") {
-    values <- df[[all.vars(formula)[attr(stats::terms(formula), "response")]]]
-    family <- estimate_distribution(values, 
-      distr_names = c("beta", "gamma", "norm"))
+  # argument input control
+  stopifnot("`formula` must be a formula class" = class(formula) == "formula")
+  stopifnot("`df` must be a class data.frame or tibble" = 
+    class(df) %in% c("data.frame", "tbl_df"))
+  stopifnot("`node_col` must be a character" = is.character(node_col))
+  stopifnot("`node_col` must be a column in the dataframe." = 
+    node_col %in% names(df))
+  stopifnot("`autocor` must be a logical" = is.logical(autocor))
+  if (is.character(family)) { 
+    family <- stringr::str_to_lower(family) 
+    rlang::arg_match(family, values = c("auto", FAMILY_FUNCTION_NAMES))
+  } else {
+    stopifnot("`family` must be a family class function" = 
+      class(family) %in% c("family", "extended.family"))
+  }
+  rlang::arg_match(method, values = MGCV_METHODS)
+  stopifnot("`discrete` must be a logical" = is.logical(discrete))
+
+  # prepare variables arguments
+  vargs <- list(...) # listify variable argument
+  mgcv_kwargs <- `_get_function_kwargs`(mgcv::bam, vargs)
+
+  # define GAM linkfamily function
+  if (is.character(family) && family == "auto") {
+    target <- `_get_formula_target`(formula)
+    linkfamily <- estimate_distribution(df[[target]])
+  } else if (is.character(family)) {
+    linkfamily <- `_get_family_function`(family)
+  } else { # family function provided
+    linkfamily <- family
   }
 
-  # call fit_gam.default
-  fit_gam.default(
-    formula  = formula, 
-    df       = df, 
-    autocor  = autocor, 
-    family   = family, 
-    method   = method, 
-    discrete = discrete, 
-    ...      = ...
-  )
+  # extract node term (smoother(node_col)) and regressor terms (everything else)
+  formula_target <- `_get_formula_target`(formula)
+  formula_terms  <- `_get_formula_terms`(formula)
+  node_index <- stringr::str_starts(formula_terms, sprintf(".+\\(%s", node_col))
+  node_terms <- formula_terms[node_index]
+  regressors <- formula_terms[!node_index]
+  if (length(regressors) == 0) { regressors <- NULL }
+
+  # stop if more than one node smoother given in formula
+  stopifnot("Cannot specify more than one node smoother in formula." = 
+    length(node_terms) <= 1)
+
+  # determine if estimating node smoother (k does not already have a value)
+  defused_call <- rlang::parse_expr(node_terms)
+  node_args    <- rlang::call_args(defused_call)
+  node_k       <- eval(node_args$k)
+
+  if (length(node_terms) == 1 && (is.null(node_k) || length(node_k) > 1)) {
+    # prepare estimate_smooth_basis arguments
+    est_kwargs <- `_get_function_kwargs`(estimate_smooth_basis.default, vargs)
+    est_kwargs <- c(list(
+      target       = formula_target, 
+      smooth_terms = node_terms, 
+      df           = df, 
+      regressors   = regressors, 
+      family       = linkfamily, 
+      method       = method, 
+      discrete     = discrete
+    ), est_kwargs)
+      
+    # estimate node term smoothing basis
+    node_terms <- do.call(estimate_smooth_basis.default, est_kwargs)$est_terms
+
+    # reformulate the formula with estimated node smoother
+    formula_terms[node_index] <- node_terms
+    formula <- stats::reformulate(
+      termlabels = formula_terms, 
+      response = formula_target, 
+      env = .GlobalEnv
+    )
+  }
+  
+  # start model fitting process (with or without autocorrelations)
+  if (autocor) {
+    # define AR1.start as first nodeID position
+    df$ar_start <- df[[node_col]] == 0
+
+    # fit GAM model without autocorrelation 
+    gam_fit_wo_rho <- mgcv::bam(
+      formula  = formula, 
+      family   = linkfamily, 
+      data     = df, 
+      method   = method, 
+      rho      = 0, 
+      AR.start = ar_start, 
+      discrete = discrete, 
+      ...      = mgcv_kwargs
+    )
+
+    # determine autocorrelation parameter, rho
+    rho <- itsadug::start_value_rho(gam_fit_wo_rho)
+
+    # fit GAM model with autocorrelation 
+    gam_fit <- mgcv::bam(
+      formula  = formula, 
+      family   = linkfamily, 
+      data     = df, 
+      method   = method, 
+      rho      = rho, 
+      AR.start = ar_start, 
+      discrete = discrete, 
+      ...      = mgcv_kwargs
+    )
+  } else {
+    # fit GAM model without autocorrelations
+    gam_fit <- mgcv::bam(
+      formula  = formula,
+      family   = linkfamily, 
+      data     = df, 
+      method   = method, 
+      discrete = discrete, 
+      ...      = mgcv_kwargs
+    )
+  }
+
+  return(gam_fit)
 }
 
 
@@ -730,8 +834,7 @@ fit_gam.formula <- function(
 #' a text (.txt) file, and the [mgcv::gam.check()] figures as a PNG (.png) file.
 #' 
 #' @param gam_model asdfasdf
-#' @param file asdfasdf
-#' @param model_rdata asdfasdf
+#' @param output_file asdfasdf
 #' @param model_summary asdfasdf
 #' @param model_check  asdfasdf
 #' @return None. 
@@ -739,37 +842,46 @@ fit_gam.formula <- function(
 #' @export
 save_gam <- function(
   gam_model, 
-  file, 
-  model_rdata   = TRUE, 
+  output_file, 
   model_summary = TRUE,
   model_check   = FALSE 
 ) {
   # argument input control
   stopifnot("`gam_model` must be a class gam or bam" = 
     any(class(gam_model) %in% c("bam", "gam")))
-  stopifnot("`model_rdata` must be a logical" = is.logical(model_rdata))
+  stopifnot("`output_file` must be a character" = is.character(output_file))
+  if (fs::path_ext(output_file) == "") { # if missing file extension
+    output_file <- fs::path_ext_set(output_file, "rda") # append
+  }
+  stopifnot("`output_file` file extension should be Rdata, Rdata, rdata, or rda" = 
+    fs::path_ext(output_file) %in% c("RData", "Rdata", "rdata", "rda"))
   stopifnot("`model_summary` must be a logical" = is.logical(model_summary))
   stopifnot("`model_check` must be a logical" = is.logical(model_check))
 
   # save model as Rdata file
-  if (model_rdata) {
-    saveRDS(gam_model, file = file)
-  }
+  saveRDS(gam_model, file = output_file)
 
   # save model summary as text file
   if (model_summary) {
     save_name <- stringr::str_replace(
-      file, ".(RData|Rdata|rdata|rda)$", "_Summary.txt")
+      output_file, ".(RData|Rdata|rdata|rda)$", "_Summary.txt")
     utils::capture.output(summary(gam_model), file = save_name)
   }
 
-  # save gam.check output (text and figures)
+  # save gam.check output (figure and text)
   if (model_check) {
+    # save gam.check figures (via gratia package)
     save_name <- stringr::str_replace(
-      file, ".(RData|Rdata|rdata|rda)$", "_GamCheck.txt")
+      output_file, ".(RData|Rdata|rdata|rda)$", "_GamCheck.png")
+    gam_check <- gratia::appraise(gam_model)
+    ggplot2::ggsave(save_name, plot = gam_check, scale = 2.5)
+
+    # save k.check component
+    save_name <- stringr::str_replace(
+      output_file, ".(RData|Rdata|rdata|rda)$", "_GamCheck.txt")
     utils::capture.output(
-      mgcv::gam.check(gam_model, rep = 500, plot = FALSE), 
-      file = save_name,
+      mgcv::k.check(gam_model, n.rep = 500),
+      file = save_name
     )
   }
 }
