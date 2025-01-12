@@ -44,8 +44,9 @@ test_that("read_afq_weston_havens loads the WH dataset", {
   expect_equal(length(unique(df_wh$subjectID)), 63)
 })
 
+
 test_that("read_afq_hbn loads the HBN dataset", {
-  df_hbn <- read_afq_hbn(truncate = TRUE, na_omit = FALSE)
+  df_hbn <- read_afq_hbn(truncate = TRUE, na_omit = TRUE)
   expect_equal(nrow(df_hbn), 49)
   expect_equal(ncol(df_hbn), 7)
   expect_equal(length(unique(df_hbn$subjectID)), 1)

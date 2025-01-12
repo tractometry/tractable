@@ -18,27 +18,36 @@ read_afq_files(
 \arguments{
 \item{nodes_file}{Path to a nodes file.}
 
-\item{pheno_file}{Path to a phenotypic file. Leave NULL to return an
-"unsupervised" AFQ dataset}
+\item{pheno_file}{Path to a phenotypic file. If pheno_file = NULL
+returns an "unsupervised" AFQ dataset.}
 
 \item{by}{Column used for merging the nodes and phenotypic files.
+Default: "subjectID"
+\cr \cr
 If variable names differ between the nodes and
 phenotypic datasets, use a named character vector like
-by = c("x_a" = "y_a", "x_b" = "y_b").
-Default: "subjectID"}
+by = c("x_a" = "y_a", "x_b" = "y_b").}
 
-\item{tract_col}{description}
+\item{tract_col}{The column name that encodes tract names.
+Default: "tractID"}
 
-\item{node_col}{description}
+\item{node_col}{The column name that encodes tract node positions.}
 
-\item{other_cols}{description}
+\item{other_cols}{Other column names to be included in the final
+data frame. Default: NULL}
 
-\item{na_omit}{description}
+\item{na_omit}{A logical indicating whether rows with NA values should
+be removed from the data frame before returning.
+Default: FALSE}
 
-\item{...}{}
+\item{...}{Further keyword arguments to be passed to the file
+reading function (\link[readr:read_delim]{readr::read_csv}, \link[readr:read_delim]{readr::read_tsv})}
+}
+\value{
+An AFQ dataset.
 }
 \description{
-There should a description of what an "AFQ" dataset is
+Create a merged AFQ and phenotype dataframe
 }
 \examples{
 \dontrun{

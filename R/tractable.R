@@ -1,57 +1,56 @@
 #' Analyze group differences in a single dMRI tract profile using GAMs
 #'
-#' @param df_afq Input AFQ dataframe. If NULL, this function will load data
-#'     using read_afq_files and the additional arguments in ...
-#' @param tract Abbreviated tract name, e.g., "CST_L" or "OR"
-#' @param dwi_metric The diffusion metric to model (e.g. "FA", "MD")
-#' @param participant_id The name of the column that encodes participant ID
-#' @param group_by The grouping variable used to group nodeID smoothing terms
-#' @param covariates List of strings of GAM covariates,
-#'     not including the smoothing terms over nodes and the random effect due
-#'     to subjectID.
-#' @param smooth_terms Smoothing terms, not including
-#'     the smoothing terms over nodes and the random effect due to subjectID.
-#' @param k Dimension of the basis used to represent the node smoothing term,
-#'     If k = 'auto', this function will attempt to find the best value
-#' @param family Distribution to use for the gam. Must be either 'gamma',
-#'     'beta', or 'auto'. If 'auto', this function will select the best fit
-#'     between beta and gamma distributions.
-#' @param ... Arguments to pass to fit_gam
-#'
+#' @param df           Input data frame dataframe.
+#' @param tract        Tract name to subset from the dataframe.
+#' @param tract_col    The column name that encodes the tract information.
+#'                     Default: tractID
+#' @param ...          Further keyword arguments to be passed to 
+#'                     [tractable::fit_gam].
+#' 
+#' @return GAM model fit object.
+#' 
 #' @examples
 #' df_sarica <- read_afq_sarica()
 #'
 #' tractable_single_tract(
-#'   df = df_sarica,
-#'   tract = "Right Corticospinal",
-#'   participant_id = "subjectID",
-#'   group_by = "group",
-#'   covariates = c("age","group"),
-#'   dwi_metric = "fa"
+#'   df         = df_sarica, 
+#'   tract      = "Right Corticospinal",
+#'   target     = "fa",
+#'   regressors = c("age", "group"),
+#'   node_group = "group"
 #' )
 #' @export
 tractable_single_tract <- function(
-  tract, 
   df, 
+  tract, 
   tract_col = "tractID",
   ...
 ) {
   # argument input control
+  stopifnot("`df` must be a class data.frame or tibble" = 
+    any(class(df) %in% c("data.frame", "tbl_df")))
   stopifnot("`tract` must be a character" = is.character(tract))
   stopifnot("`tract_col` must be a character" = is.character(tract_col))
   stopifnot("`tract_col` must be a column in the dataframe `df`" = 
-    tract_col %in% df)
+    tract_col %in% names(df))
   stopifnot("`tract` must be a valid option inside `tract_col`" = 
     any(df[[tract_col]] == tract))
 
   # subset the full dataset by the given tract name
   df_tract <- df[df[[tract_col]] == tract,]
 
-  # call fit_gam 
-  tract_fit <- fit_gam(
-    df = df_tract, 
-    ...
-  )
+  # extract kwargs for fit_gam versus other kwargs
+  vargs <- list(...) # listify kwargs
+  fit_gam_func <- ifelse(
+    "target" %in% names(vargs), fit_gam.default, fit_gam.formula)
+  fit_gam_kwargs <- `_get_function_kwargs`(fit_gam_func, vargs)
+  other_kwargs <- vargs[setdiff(names(vargs), names(fit_gam_kwargs))]
 
-  return(gam_fit)
+  # define fit_gam arguments
+  fit_gam_kwargs <- c(list(df = df_tract), fit_gam_kwargs, other_kwargs)
+
+  # fit the model and return model fit
+  model_fit <- do.call(fit_gam_func, fit_gam_kwargs)
+
+  return(model_fit)
 }

@@ -16,12 +16,12 @@ knitr::opts_chunk$set(
 ```
 
 This vignette demonstrates how a GAM model changes with increased flexibility.
+
 The data we will use here contains tract profiles from diffusion MRI
 measurements in a group of patients with Amyotrophic Lateral Sclerosis (ALS)
 and a group of matched controls [@Sarica2017].
 
-We start by loading the `tractable` library and `gratia`, as well as `ggplot2`,
-which we will use to interpret the fitted model.
+We start by loading the `tractable` library and `gratia`, as well as `ggplot2`, which we will use to interpret the fitted model.
 
 ```{r setup}
 library(tractable)
@@ -40,25 +40,17 @@ df_sarica <- read_afq_sarica()
 df_sarica
 ```
 
-Next, we subset the dataset to so that we are only examining the "Right Corticospinal" tract. 
-
-```{r}
-df_cst <- df_sarica %>%
-  filter(tractID == "Right Corticospinal")
-df_cst
-```
-
-We fit models with different levels of flexibility, encoded in different values
-of `k`:
+We fit models with different levels of flexibility, encoded in different values of `k`:
 
 ```{r}
 k_values <- c(4, 8, 16, 32)
 
 models <- list()
 for (i in 1:length(k_values)){
-   models[[i]] <- fit_gam(
+   models[[i]] <- tractable_single_tract(
     target     = "fa", 
     df         = df_cst, 
+    tract      = "Right Corticospinal",
     regressors = c("age", "group"), 
     node_k     = k_values[i], 
     node_group = "group"

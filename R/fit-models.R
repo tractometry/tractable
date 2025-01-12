@@ -275,7 +275,7 @@ estimate_smooth_basis.default <- function(
   stopifnot("`target` must be a character" = is.character(target))
   stopifnot("`smooth_terms` must be a character vector" = is.character(smooth_terms))
   stopifnot("`df` must be a class data.frame or tibble" = 
-    class(df) %in% c("data.frame", "tbl_df"))
+    any(class(df) %in% c("data.frame", "tbl_df")))
   if (!is.null(regressors)) {
     stopifnot("`regressors` must be a character class" = is.character(regressors))
   }
@@ -904,12 +904,4 @@ save_gam <- function(
     "norm"     = stats::gaussian(link = "identity")
   )
   return(family_func)
-}
-
-`_get_function_kwargs` <- function(func, vargs) {
-  func_kwargs <- rlang::fn_fmls_names(func)
-  func_kwargs <- sapply(func_kwargs, function(x) vargs[[x]])
-  func_kwargs <- func_kwargs[!sapply(func_kwargs, is.null)]
-  if (length(func_kwargs) == 0) { return(NULL) }
-  return(func_kwargs)
 }

@@ -1,22 +1,27 @@
 #' Create a merged AFQ and phenotype dataframe
-#' 
-#' @description 
-#' There should a description of what an "AFQ" dataset is
 #'
 #' @param nodes_file    Path to a nodes file.
-#' @param pheno_file    Path to a phenotypic file. Leave NULL to return an 
-#'                      "unsupervised" AFQ dataset
-#' @param by            Column used for merging the nodes and phenotypic files. 
+#' @param pheno_file    Path to a phenotypic file. If pheno_file = NULL 
+#'                      returns an "unsupervised" AFQ dataset.
+#' @param by            Column used for merging the nodes and phenotypic files.
+#'                      Default: "subjectID"
+#'                      \cr \cr
 #'                      If variable names differ between the nodes and 
 #'                      phenotypic datasets, use a named character vector like 
 #'                      by = c("x_a" = "y_a", "x_b" = "y_b").
-#'                      Default: "subjectID"
-#' @param tract_col   description
-#' @param node_col    description
-#' @param other_cols  description
-#' @param na_omit     description
-#' @param ...
-#'
+#' @param tract_col     The column name that encodes tract names.
+#'                      Default: "tractID"
+#' @param node_col      The column name that encodes tract node positions.
+#' @param other_cols    Other column names to be included in the final
+#'                      data frame. Default: NULL
+#' @param na_omit       A logical indicating whether rows with NA values should 
+#'                      be removed from the data frame before returning.
+#'                      Default: FALSE
+#' @param ...           Further keyword arguments to be passed to the file 
+#'                      reading function ([readr::read_csv], [readr::read_tsv])
+#' 
+#' @return An AFQ dataset.
+#' 
 #' @examples
 #' \dontrun{
 #' df_afq <- read_afq_files(
@@ -81,14 +86,18 @@ read_afq_files <- function(
 
 #' Load tract profiles from Sarica et al.
 #'
-#' @param ... arguments to be passed to read.csv
+#' @param na_omit    A logical indicating whether rows with NA values should be
+#'                   removed from the data frame before returning.
+#'                   Default: FALSE
+#' @param ...        Further keyword arguments to be passed to the file reading
+#'                   function ([readr::read_csv], [readr::read_tsv]).
 #'
 #' @return A merged dataframe with data from Sarica et al.
 #'
 #' @examples
 #' df_sarica <- read_afq_sarica()
 #' @export
-read_afq_sarica  <- function(na_omit = TRUE, ...) {
+read_afq_sarica  <- function(na_omit = FALSE, ...) {
   # define node and pheno S3 URLs
   nodes_file <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/nodes.csv"
   pheno_file <- "https://github.com/yeatmanlab/Sarica_2017/raw/gh-pages/data/subjects.csv"
@@ -115,13 +124,18 @@ read_afq_sarica  <- function(na_omit = TRUE, ...) {
 
 #' Load tract profiles from Yeatman et al.
 #'
-#' @param ... arguments to be passed to read.csv
+#' @param na_omit    A logical indicating whether rows with NA values should be
+#'                   removed from the data frame before returning.
+#'                   Default: FALSE
+#' @param ...        Further keyword arguments to be passed to the file reading
+#'                   function ([readr::read_csv], [readr::read_tsv]).
 #'
 #' @return A merged dataframe with data from Yeatman et al.
+#' 
 #' @examples
 #' df_weston_havens <- read_afq_weston_havens()
 #' @export
-read_afq_weston_havens <- function(na_omit = TRUE, ...) {
+read_afq_weston_havens <- function(na_omit = FALSE, ...) {
   # define node and pheno S3 URLs
   nodes_file <- "https://yeatmanlab.github.io/AFQBrowser-demo/data/nodes.csv"
   pheno_file <- "https://yeatmanlab.github.io/AFQBrowser-demo/data/subjects.csv"
@@ -147,18 +161,22 @@ read_afq_weston_havens <- function(na_omit = TRUE, ...) {
 
 #' Load tract profiles from the Healthy Brain Network dataset
 #'
-#' @param truncate   Truncate the data to 49 rows, boolean.
+#' @param truncate   Truncate the dataset to 49 rows, logical.
 #'                   Default: FALSE.
-#' @param ...        Arguments to be passed to read.csv
+#' @param na_omit    A logical indicating whether rows with NA values should be
+#'                   removed from the data frame before returning.
+#'                   Default: FALSE
+#' @param ...        Further keyword arguments to be passed to the file reading
+#'                   function ([readr::read_csv], [readr::read_tsv]).
 #'
 #' @return A merged dataframe with data from HBN
 #'
 #' @examples
-#' \dontrun{
-#'   df_hbn <- read_afq_hbn()
+#' \dontrun{ 
+#' df_hbn <- read_afq_hbn()
 #' }
 #' @export
-read_afq_hbn <- function(truncate = FALSE, na_omit = TRUE, ...) {
+read_afq_hbn <- function(truncate = FALSE, na_omit = FALSE, ...) {
   # define node and pheno S3 URLs
   if (truncate) { # if truncating HBN download
     nodes_file <- "s3://fcp-indi/data/Projects/HBN/BIDS_curated/derivatives/afq/.truncated_tract_profiles.csv"
