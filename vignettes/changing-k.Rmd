@@ -36,7 +36,7 @@ subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
 ```{r}
-df_sarica <- read_afq_sarica() 
+df_sarica <- read_afq_sarica(na_omit = TRUE) 
 df_sarica
 ```
 

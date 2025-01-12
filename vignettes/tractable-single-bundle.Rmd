@@ -33,7 +33,7 @@ subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
 ```{r}
-df_sarica <- read_afq_sarica()
+df_sarica <- read_afq_sarica(na_omit = TRUE)
 df_sarica
 ```
 
@@ -45,12 +45,12 @@ this dataset.
 
 ```{r}
 plot_tract_profiles(
-  df          = sarica,
-  group_col   = "group",
-  n_groups    = 2,
-  metrics     = c("fa", "md"),
-  bundles     = list("Right Corticospinal", "Right SLF"),
-  bundles_col = "tractID"
+  df         = df_sarica,
+  group_col  = "group",
+  n_groups   = 2,
+  metrics    = c("fa", "md"),
+  tracts     = list("Right Corticospinal", "Right SLF"),
+  tracts_col = "tractID"
 )
 ```
 
@@ -66,14 +66,13 @@ the smooth change of FA over the length of the tract. We use an automated
 strategy to find `k`.
 
 ```{r}
-gam_fit_cst <- tractable_single_bundle(
-  df             = sarica,
-  tract          = "Right Corticospinal",
-  participant_id = "subjectID",
-  group_by       = "group",
-  covariates     = c("age", "group"),
-  dwi_metric     = "fa",
-  k              = "auto"
+cst_fit <- tractable_single_tract(
+  df         = df_sarica,
+  tract      = "Right Corticospinal",
+  target     = "fa",
+  regressors = c("age", "group"),
+  node_group = "group",
+  k          = "auto"
 )
 ```
 
@@ -84,7 +83,7 @@ In addition, we see that there is a statistically significant effect of group
 (p=0.2748).
 
 ```{r}
-summary(gam_fit_cst)
+summary(cst_fit)
 ```
 
 Running the same analysis on the data from SLF, we see that there is no
@@ -92,17 +91,16 @@ significant difference between the groups in this bundle, indicating that the
 effect observed in CST is rather specific to this bundle.
 
 ```{r}
-gam_fit_slf <- tractable_single_bundle(
-  df_afq         = sarica,
-  tract          = "Right SLF",
-  participant_id = "subjectID",
-  group_by       = "group",
-  covariates     = c("age","group"),
-  dwi_metric     = "fa",
-  k              = "auto"
+slf_fit <- tractable_single_tract(
+  df         = df_sarica,
+  tract      = "Right SLF",
+  target     = "fa",
+  regressors = c("age", "group"),
+  node_group = "group",
+  k          = "auto"
 )
 
-summary(gam_fit_slf)
+summary(slf_fit)
 ```
 
 This is in line with other work that we have conducted with this dataset

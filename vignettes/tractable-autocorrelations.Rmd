@@ -17,8 +17,7 @@ knitr::opts_chunk$set(
 
 This vignette demonstrates the use of an AR1 model within a GAM to account for
 autocorrelation of the error terms of the model. We will use data from the
-Sarica dataset [@Sarica2017] to demonstrate the how to include an autocorrelation
-term and its impact on the model statistics. 
+Sarica dataset [@Sarica2017] to demonstrate the how to include an autocorrelation term and its impact on the model statistics. 
 
 We start by loading the `tractable` library:
 
@@ -34,7 +33,7 @@ subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
 ```{r load data}
-df_sarica <- read_afq_sarica()
+df_sarica <- read_afq_sarica(na_omit = TRUE)
 df_sarica
 ```
 
@@ -46,15 +45,14 @@ for `k`, a parameter used to determine the number of spline functions. The defau
 
 
 ```{r fit no ac model}
-gam_fit_cst_no_ac <- tractable::tractable_single_bundle(
-  df_afq         = sarica,
-  tract          = "Right Corticospinal",
-  participant_id = "subjectID",
-  group_by       = "group",
-  covariates     = c("age", "group"),
-  dwi_metric     = "fa",
-  k              = "auto",
-  autocor        = FALSE
+gam_fit_cst_no_ac <- tractable_single_tract(
+  df         = df_sarica,
+  tract      = "Right Corticospinal",
+  target     = "fa",
+  regressors = c("age", "group"),
+  node_group = "group",
+  k          = "auto",
+  autocor    = FALSE
 )
 ```
 
@@ -78,22 +76,21 @@ automatically determine the value of $\rho$. We can also plot the autocorrelatio
 by setting `plot=TRUE` within that function (pictured below). 
 
 ```{r calculate rho}
-rho = itsadug::start_value_rho(gam_fit_cst_no_ac)
-itsadug::start_value_rho(gam_fit_cst_no_ac, plot=T)
+rho <- start_value_rho(gam_fit_cst_no_ac)
+start_value_rho(gam_fit_cst_no_ac, plot = TRUE)
 ```
 
-By default, the `tractable_single_bundle` function will determine the value of 
+By default, the `tractable_single_tract` function will determine the value of 
 $\rho$ and incorporate the AR1 model into the GAM estimation. 
 
 ```{r fit model including AR structure}
-gam_fit_cst <- tractable::tractable_single_bundle(
-  df_afq         = sarica,
-  tract          = "Right Corticospinal",
-  participant_id = "subjectID",
-  group_by       = "group",
-  covariates     = c("age", "group"),
-  dwi_metric     = "fa",
-  k              = "auto"
+gam_fit_cst <- tractable_single_tract(
+  df         = df_sarica,
+  tract      = "Right Corticospinal",
+  target     = "fa",
+  regressors = c("age", "group"),
+  node_group = "group",
+  k          = "auto"
 )
 ```
 
