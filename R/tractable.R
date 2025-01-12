@@ -18,47 +18,40 @@
 #'     between beta and gamma distributions.
 #' @param ... Arguments to pass to fit_gam
 #'
-#' @export
-#'
 #' @examples
-#' sarica <- read_afq_sarica()
-#' sarica$group <- factor(sarica$class)
-#' sarica$subjectID <- unclass(factor(sarica$subjectID))
-#' tractable_single_bundle(df_afq = sarica,
-#'                      tract = "Right Corticospinal",
-#'                      participant_id = "subjectID",
-#'                      group_by = "group",
-#'                      covariates = c("age","group"),
-#'                      dwi_metric = "fa")
-tractable_single_bundle <- function(df_afq,
-                                 tract,
-                                 dwi_metric,
-                                 participant_id = "subjectID",
-                                 group_by = "group",
-                                 covariates = c(group_by),
-                                 smooth_terms = NULL,
-                                 k = "auto",
-                                 family = "auto",
-                                 ... ) {
-  selected <- select_bundle(
-    df_afq = df_afq,
-    tract = tract,
-    dwi_metric = dwi_metric,
-    covariates = covariates,
-    participant_id = participant_id,
-    group_by = group_by)
+#' df_sarica <- read_afq_sarica()
+#'
+#' tractable_single_tract(
+#'   df = df_sarica,
+#'   tract = "Right Corticospinal",
+#'   participant_id = "subjectID",
+#'   group_by = "group",
+#'   covariates = c("age","group"),
+#'   dwi_metric = "fa"
+#' )
+#' @export
+tractable_single_tract <- function(
+  tract, 
+  df, 
+  tract_col = "tractID",
+  ...
+) {
+  # argument input control
+  stopifnot("`tract` must be a character" = is.character(tract))
+  stopifnot("`tract_col` must be a character" = is.character(tract_col))
+  stopifnot("`tract_col` must be a column in the dataframe `df`" = 
+    tract_col %in% df)
+  stopifnot("`tract` must be a valid option inside `tract_col`" = 
+    any(df[[tract_col]] == tract))
 
-  df_tract <- selected$df_tract
+  # subset the full dataset by the given tract name
+  df_tract <- df[df[[tract_col]] == tract,]
 
-  gam_fit <- fit_gam(df_tract = df_tract,
-                     target = dwi_metric,
-                     covariates = covariates,
-                     smooth_terms = smooth_terms,
-                     group_by = group_by,
-                     participant_id = participant_id,
-                     k = k,
-                     family = family,
-                     ... = ...)
+  # call fit_gam 
+  tract_fit <- fit_gam(
+    df = df_tract, 
+    ...
+  )
 
   return(gam_fit)
 }

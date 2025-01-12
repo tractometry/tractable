@@ -1,8 +1,6 @@
-
 # Global Variables
 FAMILY_FUNCTION_NAMES <- c("beta", "gamma" , "gaussian", "norm")
 MGCV_METHODS <- c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")
-
 
 #' Build a GAM formula.
 #' 
@@ -534,6 +532,7 @@ fit_gam <- function(...) {
   UseMethod("fit_gam")
 }
 
+#' @rdname fit_gam
 #' @export
 fit_gam.default <- function(
   target, 
@@ -553,7 +552,7 @@ fit_gam.default <- function(
   stopifnot("`target` must be a character" = is.character(target))
   stopifnot("There can be only one `target`" = length(target) == 1)
   stopifnot("`df` must be a class data.frame or tibble" = 
-    class(df) %in% c("data.frame", "tbl_df"))
+    any(class(df) %in% c("data.frame", "tbl_df")))
   if (!is.null(regressors)) {
     stopifnot("`regressors` must be a character" = is.character(regressors))
   }
@@ -709,7 +708,7 @@ fit_gam.formula <- function(
   # argument input control
   stopifnot("`formula` must be a formula class" = class(formula) == "formula")
   stopifnot("`df` must be a class data.frame or tibble" = 
-    class(df) %in% c("data.frame", "tbl_df"))
+    any(class(df) %in% c("data.frame", "tbl_df")))
   stopifnot("`node_col` must be a character" = is.character(node_col))
   stopifnot("`node_col` must be a column in the dataframe." = 
     node_col %in% names(df))

@@ -4,7 +4,7 @@
 \alias{read_afq_weston_havens}
 \title{Load tract profiles from Yeatman et al.}
 \usage{
-read_afq_weston_havens(...)
+read_afq_weston_havens(na_omit = TRUE, ...)
 }
 \arguments{
 \item{...}{arguments to be passed to read.csv}

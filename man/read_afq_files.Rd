@@ -2,45 +2,49 @@
 % Please edit documentation in R/datasets.R
 \name{read_afq_files}
 \alias{read_afq_files}
-\title{Create a merged AFQ/phenotype dataframe}
+\title{Create a merged AFQ and phenotype dataframe}
 \usage{
 read_afq_files(
-  nodes_csv,
-  pheno_csv = NULL,
-  index = "subjectID",
-  index_nodes = index,
-  index_pheno = index,
-  dwi_metrics = NULL,
-  factor_cols = NULL,
-  pheno_cols = NULL,
+  nodes_file,
+  pheno_file = NULL,
+  by = "subjectID",
+  tract_col = "tractID",
+  node_col = "nodeID",
+  other_cols = NULL,
+  na_omit = FALSE,
   ...
 )
 }
 \arguments{
-\item{nodes_csv}{path to a nodes file}
+\item{nodes_file}{Path to a nodes file.}
 
-\item{pheno_csv}{path to a phenotypic file, leave NULL to return an "unsupervised" AFQ dataset}
+\item{pheno_file}{Path to a phenotypic file. Leave NULL to return an
+"unsupervised" AFQ dataset}
 
-\item{index}{specification of the column used for merging}
+\item{by}{Column used for merging the nodes and phenotypic files.
+If variable names differ between the nodes and
+phenotypic datasets, use a named character vector like
+by = c("x_a" = "y_a", "x_b" = "y_b").
+Default: "subjectID"}
 
-\item{index_nodes}{specification of the column used for merging}
+\item{tract_col}{description}
 
-\item{index_pheno}{specification of the column used for merging}
+\item{node_col}{description}
 
-\item{dwi_metrics}{which diffusion metrics should be retained}
+\item{other_cols}{description}
 
-\item{factor_cols}{which columns should be treated as factors}
+\item{na_omit}{description}
 
-\item{pheno_cols}{which columns to include from pheno file}
-
-\item{...}{arguments to be passed to read.csv}
+\item{...}{}
 }
 \description{
-Create a merged AFQ/phenotype dataframe
+There should a description of what an "AFQ" dataset is
 }
 \examples{
 \dontrun{
-  df_afq <- read_afq_files(nodes_csv = "a/path/to/nodes.csv",
-                           pheno_csv = "a/path/to/pheno.csv")
+df_afq <- read_afq_files(
+  nodes_file = "path/to/nodes.csv",
+  pheno_file = "path/to/pheno.csv"
+)
 }
 }

@@ -1,52 +1,52 @@
 test_that("build_formula runs as expected", {
 
   expect_identical(
-    tractable::build_formula(target = "fa"),
+    build_formula(target = "fa"),
     as.formula("fa ~ s(nodeID) + s(subjectID, bs = 're')", env = .GlobalEnv)
   )
 
   expect_identical(
-    tractable::build_formula(target = "fa", node_k = 15, node_col = "x", 
-                             participant_col = "participant_id"),
+    build_formula(target = "fa", node_k = 15, node_col = "x", 
+                  participant_col = "participant_id"),
     as.formula("fa ~ s(x, k = 15) + s(participant_id, bs = 're')", 
                env = .GlobalEnv)
   )
 
   expect_identical(
-    tractable::build_formula(target = "fa", regressors = "group", 
-                             node_k = 15, node_col = "x", 
-                             participant_col = "participant_id"),
+    build_formula(target = "fa", regressors = "group", 
+                  node_k = 15, node_col = "x", 
+                  participant_col = "participant_id"),
     as.formula("fa ~ group + s(x, k = 15) + s(participant_id, bs = 're')", 
                env = .GlobalEnv)
   )
 
   expect_identical(
-    tractable::build_formula(target = "fa", regressors = "group", 
-                             node_k = 15, node_col = "x", node_group = "group",
-                             participant_col = "participant_id"),
+    build_formula(target = "fa", regressors = "group", 
+                  node_k = 15, node_col = "x", node_group = "group",
+                  participant_col = "participant_id"),
     as.formula("fa ~ group + s(x, by = group, bs = 'fs', k = 15) + s(participant_id, bs = 're')", 
                env = .GlobalEnv)
   )
 
   expect_identical(
-    tractable::build_formula(target = "fa", 
-                             regressors = c("group", "sex"), 
-                             node_k = 15, node_col = "x", 
-                             participant_col = "participant_id"),
+    build_formula(target = "fa", 
+                  regressors = c("group", "sex"), 
+                  node_k = 15, node_col = "x", 
+                  participant_col = "participant_id"),
    as.formula("fa ~ group + sex + s(x, k = 15) + s(participant_id, bs = 're')", 
               env = .GlobalEnv)
   )
 
   expect_identical(
-    tractable::build_formula(target = "fa", 
-                             regressors = c("group", "sex", "nodeID"), 
-                             node_k = 15, node_group = "group"), 
+    build_formula(target = "fa", 
+                  regressors = c("group", "sex", "nodeID"), 
+                  node_k = 15, node_group = "group"), 
     as.formula("fa ~ group + sex + s(nodeID, by = group, bs = 'fs', k = 15) + s(subjectID, bs = 're')", 
                env = .GlobalEnv)
   )
 
   expect_identical(
-    tractable::build_formula(
+    build_formula(
       target = "fa", regressors = c("age", "group", "s(age, by = group, k = 2)")), 
     as.formula("fa ~ age + group + s(age, by = group, k = 2) + s(nodeID) + s(subjectID, bs = 're')", 
                env = .GlobalEnv)
@@ -56,29 +56,26 @@ test_that("build_formula runs as expected", {
 
 test_that("estimate_distribution runs as expected", {
   x <- stats::rnorm(1000)
-  expect_identical(tractable::estimate_distribution(x), 
+  expect_identical(estimate_distribution(x), 
                    stats::gaussian(link = "identity"))
   
-  expect_error(tractable::estimate_distribution("gaussian"))
-  expect_error(tractable::estimate_distribution(
+  expect_error(estimate_distribution("gaussian"))
+  expect_error(estimate_distribution(
     x, distr_options = c("logit", "gamma")))
-  expect_error(tractable::estimate_distribution(x, eval_metric = "ML"))
+  expect_error(estimate_distribution(x, eval_metric = "ML"))
 
   x <- stats::rgamma(1000, shape = 12)
-  expect_identical(tractable::estimate_distribution(x), 
+  expect_identical(estimate_distribution(x), 
                    stats::Gamma(link = "logit"))
 })
 
 
 test_that("estimate_smooth_basis.default runs as expected", {
-  df_sarica <- tractable::read_afq_sarica() %>% 
+  df_sarica <- read_afq_sarica() %>% 
     dplyr::filter(tractID == "Right Corticospinal") %>% 
-    dplyr::mutate(subjectID = factor(subjectID), 
-                  gender = factor(gender), 
-                  group = factor(class)) %>% 
-    tidyr::drop_na() 
+    dplyr::rename(group = class)
 
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     target       = "md", 
     smooth_terms = "s(nodeID, bs = 'ts', k = seq(2, 20, 8))", 
     df           = df_sarica, 
@@ -89,7 +86,7 @@ test_that("estimate_smooth_basis.default runs as expected", {
     dplyr::filter(term == expected_term)
   expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
   
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     target       = "fa", 
     smooth_terms = "s(nodeID, by = group, bs = 'fs')", 
     df           = df_sarica, 
@@ -101,7 +98,7 @@ test_that("estimate_smooth_basis.default runs as expected", {
     dplyr::filter(term == expected_term)
   expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
   
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     target       = "fa", 
     smooth_terms = "s(nodeID, by = group, bs = 'fs', k = c(4, 11))", 
     df           = df_sarica, 
@@ -115,7 +112,7 @@ test_that("estimate_smooth_basis.default runs as expected", {
     dplyr::filter(term == expected_term)
   expect_identical(expected_values$k_index > 0.98 && expected_values$p_value > 0.1, TRUE)
 
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     target       = "fa", 
     smooth_terms = c("s(age, k = 1:10)", "s(nodeID, by = group, bs = 'fs', k = c(7,9), m = 3)"),
     df           = df_sarica, 
@@ -133,14 +130,11 @@ test_that("estimate_smooth_basis.default runs as expected", {
 
 
 test_that("estimate_smooth_basis.formula runs as expected", {
-  df_sarica <- tractable::read_afq_sarica() %>% 
+  df_sarica <- read_afq_sarica() %>% 
     dplyr::filter(tractID == "Right Corticospinal") %>% 
-    dplyr::mutate(subjectID = factor(subjectID), 
-                  gender = factor(gender), 
-                  group = factor(class)) %>% 
-    tidyr::drop_na() 
+    dplyr::rename(group = class)
 
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     formula = md ~ s(nodeID, bs = "ts", k = seq(2, 20, 8)), 
     df      = df_sarica
   )
@@ -150,7 +144,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
     dplyr::filter(term == expected_term)
   expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
   
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     formula = fa ~ age + group + s(nodeID, by = group, bs = "fs"), 
     df      = df_sarica, 
   )
@@ -160,7 +154,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
     dplyr::filter(term == expected_term)
   expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
   
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     formula    = fa ~ age + group + s(nodeID, by = group, bs = "fs", k = c(4, 11)),
     df         = df_sarica, 
     kindex_thr = 0.98,
@@ -172,7 +166,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
     dplyr::filter(term == expected_term)
   expect_identical(expected_values$k_index > 0.98 && expected_values$p_value > 0.1, TRUE)
 
-  estimated_information <- tractable::estimate_smooth_basis(
+  estimated_information <- estimate_smooth_basis(
     formula = fa ~ group + s(age, k = 1:10) 
       + s(nodeID, by = group, bs = "fs", k = c(7,9), m = 3), 
     df      = df_sarica, 
@@ -189,15 +183,12 @@ test_that("estimate_smooth_basis.formula runs as expected", {
 
 
 test_that("fit_gam.default runs as expected", {
-  df_sarica <- tractable::read_afq_sarica() %>% 
+  df_sarica <- read_afq_sarica() %>% 
     dplyr::filter(tractID == "Right Corticospinal") %>% 
-    dplyr::mutate(subjectID = factor(subjectID), 
-                  gender = factor(gender), 
-                  group = factor(class)) %>% 
-    tidyr::drop_na() 
+    dplyr::rename(group = class)
 
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       target     = "fa", 
       df         = df_sarica, 
       regressors = c("age", "group"), 
@@ -210,7 +201,7 @@ test_that("fit_gam.default runs as expected", {
     env = .GlobalEnv))
 
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       target     = "fa", 
       df         = df_sarica, 
       regressors = c("age", "group"), 
@@ -223,7 +214,7 @@ test_that("fit_gam.default runs as expected", {
     env = .GlobalEnv))
 
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       target     = "fa", 
       df         = df_sarica, 
       regressors = c("age", "group"), 
@@ -234,7 +225,7 @@ test_that("fit_gam.default runs as expected", {
   expect_identical(model_fit$AR1.rho, 0)
   
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       target     = "fa", 
       df         = df_sarica, 
       regressors = c("age", "group"),
@@ -250,15 +241,12 @@ test_that("fit_gam.default runs as expected", {
 
 
 test_that("fit_gam.formula runs as expected", {
-  df_sarica <- tractable::read_afq_sarica() %>% 
+  df_sarica <- read_afq_sarica() %>% 
     dplyr::filter(tractID == "Right Corticospinal") %>% 
-    dplyr::mutate(subjectID = factor(subjectID), 
-                  gender = factor(gender), 
-                  group = factor(class)) %>% 
-    tidyr::drop_na() 
+    dplyr::rename(group = class)
 
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       formula = fa ~ age + group 
         + s(nodeID, by = group, bs = "fs") 
         + s(subjectID, bs = "re"),
@@ -271,7 +259,7 @@ test_that("fit_gam.formula runs as expected", {
     env = .GlobalEnv))
 
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       formula = fa ~ age + group 
         + s(nodeID) 
         + s(subjectID, bs = "re"),
@@ -285,7 +273,7 @@ test_that("fit_gam.formula runs as expected", {
     env = .GlobalEnv))
 
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       formula = fa ~ age + group +
         + s(nodeID, bs = "ts") 
         + s(subjectID, bs = "re"),
@@ -297,7 +285,7 @@ test_that("fit_gam.formula runs as expected", {
   expect_identical(model_fit$AR1.rho, 0)
   
   expect_no_error({
-    model_fit <- tractable::fit_gam(
+    model_fit <- fit_gam(
       formula = fa ~ age + group
         + s(nodeID, k = 10) 
         + s(subjectID, bs = "re"),
@@ -313,22 +301,19 @@ test_that("fit_gam.formula runs as expected", {
 
 
 test_that("save_gam runs as expected", {
-  df_sarica <- tractable::read_afq_sarica() %>% 
+  df_sarica <- read_afq_sarica() %>% 
     dplyr::filter(tractID == "Right Corticospinal") %>% 
-    dplyr::mutate(subjectID = factor(subjectID), 
-                  gender = factor(gender), 
-                  group = factor(class)) %>% 
-    tidyr::drop_na() 
+    dplyr::rename(group = class)
 
-  model_fit <- tractable::fit_gam(
+  model_fit <- fit_gam(
     target     = "fa", 
     df         = df_sarica, 
     regressors = c("age", "group"), 
     node_group = "group", 
   )
 
-  expect_error(tractable::save_gam(model_fit, output_file = "model.txt"))
-  expect_no_error(tractable::save_gam(model_fit, output_file = tempfile()))
-  expect_no_error(tractable::save_gam(model_fit, output_file = tempfile(), model_summary = FALSE))
-  expect_no_error(tractable::save_gam(model_fit, output_file = tempfile(), model_check = TRUE))
+  expect_error(save_gam(model_fit, output_file = "model.txt"))
+  expect_no_error(save_gam(model_fit, output_file = tempfile()))
+  expect_no_error(save_gam(model_fit, output_file = tempfile(), model_summary = FALSE))
+  expect_no_error(save_gam(model_fit, output_file = tempfile(), model_check = TRUE))
 })

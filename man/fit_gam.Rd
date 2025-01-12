@@ -2,10 +2,26 @@
 % Please edit documentation in R/fit-models.R
 \name{fit_gam}
 \alias{fit_gam}
+\alias{fit_gam.default}
 \alias{fit_gam.formula}
 \title{Fit a GAM model.}
 \usage{
 fit_gam(...)
+
+\method{fit_gam}{default}(
+  target,
+  df,
+  regressors = NULL,
+  node_col = "nodeID",
+  node_k = "auto",
+  node_group = NULL,
+  participant_col = "subjectID",
+  autocor = TRUE,
+  family = "auto",
+  method = "fREML",
+  discrete = TRUE,
+  ...
+)
 
 \method{fit_gam}{formula}(
   formula,
@@ -19,19 +35,17 @@ fit_gam(...)
 )
 }
 \arguments{
-\item{formula}{Explicit formula to use for the GAM.}
+\item{target}{The column name that encodes the metric to model.}
 
 \item{df}{The data frame contains GAM metrics.}
-
-\item{node_col}{The column name that encodes tract node positions.
-Default: "nodeID".}
-
-\item{target}{The column name that encodes the metric to model.}
 
 \item{regressors}{Column name or list of column names to use as
 regressors, not including nodes smoothing terms and
 the participant random effect. This list can also
 include smoothing terms. Default: NULL.}
+
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID".}
 
 \item{node_k}{The basis dimensions used to represent the node
 smoother. If \code{node_group}, the basis value is applied
@@ -39,6 +53,8 @@ to the group as well. Default: 'auto'.}
 
 \item{node_group}{The column name to group the tract node smooth by
 (i.e., \code{s(node_col, by = node_group, k = node_k)}).}
+
+\item{formula}{Explicit formula to use for the GAM.}
 }
 \value{
 Fit GAM model

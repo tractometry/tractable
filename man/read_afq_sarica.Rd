@@ -4,7 +4,7 @@
 \alias{read_afq_sarica}
 \title{Load tract profiles from Sarica et al.}
 \usage{
-read_afq_sarica(...)
+read_afq_sarica(na_omit = TRUE, ...)
 }
 \arguments{
 \item{...}{arguments to be passed to read.csv}

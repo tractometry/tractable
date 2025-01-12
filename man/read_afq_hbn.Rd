@@ -4,12 +4,13 @@
 \alias{read_afq_hbn}
 \title{Load tract profiles from the Healthy Brain Network dataset}
 \usage{
-read_afq_hbn(truncate = FALSE, ...)
+read_afq_hbn(truncate = FALSE, na_omit = TRUE, ...)
 }
 \arguments{
-\item{truncate}{if TRUE, truncate the data to 49 rows. default = FALSE}
+\item{truncate}{Truncate the data to 49 rows, boolean.
+Default: FALSE.}
 
-\item{...}{arguments to be passed to read.csv}
+\item{...}{Arguments to be passed to read.csv}
 }
 \value{
 A merged dataframe with data from HBN
