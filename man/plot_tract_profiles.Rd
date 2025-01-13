@@ -6,9 +6,9 @@
 \usage{
 plot_tract_profiles(
   df,
-  metrics = NULL,
+  y = NULL,
   tracts = NULL,
-  tracts_col = "tractID",
+  tract_col = "tractID",
   group_col = NULL,
   line_func = "mean",
   linewidth = 1,
@@ -16,43 +16,46 @@ plot_tract_profiles(
   ribbon_alpha = 0.25,
   n_groups = 3,
   pal_name = "colorblind",
-  out_dir = getwd(),
-  figsize = c(8, 11.5)
+  output_dir = getwd(),
+  ...
 )
 }
 \arguments{
 \item{df}{Data frame.}
 
-\item{metrics}{Name(s) of the metrics to plot per figure, character vector.
-By default, will be all diffusion metrics in the provided data frame.}
-
 \item{tracts}{Name(s) of the tract tracts to plot per facet, character
 vector. By default, will be all tract tracts in the provided data
 frame.}
 
-\item{tracts_col}{Name of the column in the provided data frame with the
-tract tracts.}
+\item{tract_col}{Name of the column in the provided data frame with the
+tracts.}
 
-\item{group_col}{Name of the column in the data frame to group by as a color,
-character. By default, no grouping variable is provided.}
+\item{group_col}{Name of the column in the data frame to group by as a
+color, character. By default, no grouping variable is provided.}
 
 \item{line_func}{Line function that provides the line positioning. See
-\link[ggplot2]{stat_summary} for more information.}
+\link[ggplot2:stat_summary]{ggplot2::stat_summary} for more information.}
 
 \item{linewidth}{Line thickness of the tract profile line.}
 
 \item{ribbon_func}{Ribbon function that provides the range for the ribbon.
-See \link[ggplot2]{stat_summary} for more information.}
+See \link[ggplot2:stat_summary]{ggplot2::stat_summary} for more information.}
 
 \item{ribbon_alpha}{Ribbon alpha level.}
 
 \item{n_groups}{Number of groups to split a numeric grouping variable.}
 
-\item{pal_name}{Grouping color palette name, character. Default is colorblind.}
+\item{pal_name}{Grouping color palette name, character.
+Default: Colorblind palette.}
 
-\item{out_dir}{Output directory of saved plots.}
+\item{output_dir}{Output directory for the plot images.
+Default: Current working directory.}
 
-\item{figsize}{Figure size. A numeric vector of (width, height) in inches.}
+\item{...}{Keyword arguments to be passed to \link[ggplot2:ggsave]{ggplot2::ggsave}.}
+
+\item{metrics}{Name(s) of the metrics to plot per figure, character vector.
+By default, will be all diffusion metrics in the
+provided data frame.}
 }
 \value{
 List of plot handles corresponding to the specified metrics.
@@ -62,10 +65,10 @@ Plot tract profiles for each tract as a facet and each metric as a figure.
 }
 \examples{
 \dontrun{
-df <- read_afq_sarica()
+df_sarica <- read_afq_sarica(na_omit = TRUE)
 
 plot_tract_profiles(
-  df,
+  df_sarica,
   metrics = c("fa"),
   tracts = c("Left Corticospinal", "Right Corticospinal"),
   group_col = "class",
@@ -73,9 +76,9 @@ plot_tract_profiles(
 )
 
 plot_tract_profiles(
-  df,
-  metrics = c("fa"),
-  tracts = c("Left Corticospinal", "Right Corticospinal"),
+  df_sarica,
+  metrics   = "fa"
+  tracts    = c("Left Corticospinal", "Right Corticospinal"),
   group_col = "age",
   n_groups  = 3,
   pal_name  = "Spectral",

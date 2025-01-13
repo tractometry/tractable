@@ -7,15 +7,18 @@
 tractable_single_tract(df, tract, tract_col = "tractID", ...)
 }
 \arguments{
-\item{df}{Input AFQ dataframe. If NULL, this function will load data
-using read_afq_files and the additional arguments in ...}
+\item{df}{Input data frame dataframe.}
 
-\item{tract}{Abbreviated tract name, e.g., "CST_L" or "OR"}
+\item{tract}{Tract name to subset from the dataframe.}
 
-\item{tract_col}{The diffusion metric to model (e.g. "FA", "MD")}
+\item{tract_col}{The column name that encodes the tract information.
+Default: tractID}
 
 \item{...}{Further keyword arguments to be passed to
 \link{fit_gam}.}
+}
+\value{
+GAM model fit object.
 }
 \description{
 Analyze group differences in a single dMRI tract profile using GAMs

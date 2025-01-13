@@ -5,24 +5,30 @@
 \title{Shuffle an AFQ dataframe}
 \usage{
 shuffle_df(
-  input_df,
-  dwi_metric,
-  group_by = "group",
-  participant_id = "subjectID",
-  shuffle_vars = NULL,
+  df,
+  target,
+  shuffle_cols = NULL,
+  node_col = "nodeID",
+  node_group = NULL,
+  tract_col = "tractID",
+  participant_col = "subjectID",
   sample_uniform = FALSE
 )
 }
 \arguments{
-\item{input_df}{The input AFQ dataframe}
+\item{df}{The input AFQ dataframe}
 
-\item{dwi_metric}{The diffusion MRI metric (e.g. "FA", "MD")}
+\item{target}{The diffusion MRI metric (e.g. "FA", "MD")}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms}
+\item{shuffle_cols}{Column names that should be shuffled.}
 
-\item{participant_id}{The name of the column that encodes participant ID}
+\item{node_col}{sdecriptiojn}
 
-\item{shuffle_vars}{List of strings of column names that should be shuffled}
+\item{node_group}{The grouping variable used to group nodeID smoothing terms}
+
+\item{tract_col}{description}
+
+\item{participant_col}{The name of the column that encodes participant ID}
 
 \item{sample_uniform}{Boolean flag. If TRUE, shuffling should sample
 uniformly from the unique values in the columns. If FALSE, shuffling
@@ -38,7 +44,7 @@ tract profiles and phenotypic data.
 }
 \examples{
 \dontrun{
-df_afq <- read.csv("/path/to/afq/output.csv")
-df_shuffle <- shuffle_df(df_afq, "dti_fa")
+df_afq <- read_csv("/path/to/afq/output.csv")
+df_shuffle <- shuffle_df(df_afq, target = "dti_fa")
 }
 }

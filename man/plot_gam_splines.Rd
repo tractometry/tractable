@@ -12,7 +12,7 @@ plot_gam_splines(
   covariates,
   group_by = "group",
   participant_id = "subjectID",
-  out_dir
+  output_dir
 )
 }
 \arguments{
@@ -32,7 +32,7 @@ to subjectID.}
 
 \item{participant_id}{The name of the column that encodes participant ID}
 
-\item{out_dir}{directory in which to save plots}
+\item{output_dir}{directory in which to save plots}
 }
 \description{
 Plot GAM splines for each group
@@ -50,6 +50,6 @@ plot_gam_splines(gam_model = gam_fit,
                  df_tract = df_afq,
                  dwi_metric = "dti_fa",
                  covariates = c("group", "sex"),
-                 out_dir = ".")
+                 output_dir = ".")
 }
 }

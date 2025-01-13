@@ -28,11 +28,9 @@ library(tractable)
 
 Next, we will use a function that is included in `tractable` to read this dataset directly into memory. 
 
-Importantly, both the group ("ALS" or "CTRL") and the
-subject identifier ("subjectID") need to be factors for subsequent analysis
-to work properly.
+Importantly, both the group ("ALS" or "CTRL") and the subject identifier ("subjectID") need to be factors for subsequent analysis to work properly.
 
-```{r}
+```{r load_data}
 df_sarica <- read_afq_sarica(na_omit = TRUE)
 df_sarica
 ```
@@ -43,7 +41,7 @@ in two tracts: the right corticospinal tract (CST) and the right superior
 longitudinal fasciculus (SLF), which are identified in the "tractID" column of
 this dataset.
 
-```{r}
+```{r plot_profiles}
 plot_tract_profiles(
   df         = df_sarica,
   group_col  = "group",
@@ -65,7 +63,7 @@ use a parameter `k` to determine how many spline functions to use in fitting
 the smooth change of FA over the length of the tract. We use an automated
 strategy to find `k`.
 
-```{r}
+```{r cst_model_fit}
 cst_fit <- tractable_single_tract(
   df         = df_sarica,
   tract      = "Right Corticospinal",
@@ -74,23 +72,22 @@ cst_fit <- tractable_single_tract(
   node_group = "group",
   k          = "auto"
 )
+
+cst_summary <- summary(cst_fit)
+cst_summary
 ```
 
 Examining the summary of the resulting GAM fit object shows us that the `k=16`
 is sufficiently large to describe the spatial variation of tract profile data.
 In addition, we see that there is a statistically significant effect of group
-(with a p-value of 4.66e-10) and no statistically significant effect of age
-(p=0.2748).
-
-```{r}
-summary(cst_fit)
-```
+(with a p-value of `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`) and no statistically significant effect of age
+(p = `r cst_summary$p.table["age", "Pr(>|t|)"]`).
 
 Running the same analysis on the data from SLF, we see that there is no
 significant difference between the groups in this bundle, indicating that the
 effect observed in CST is rather specific to this bundle.
 
-```{r}
+```{r slf_model_fit}
 slf_fit <- tractable_single_tract(
   df         = df_sarica,
   tract      = "Right SLF",
@@ -100,7 +97,8 @@ slf_fit <- tractable_single_tract(
   k          = "auto"
 )
 
-summary(slf_fit)
+slf_summary <- summary(slf_fit)
+slf_summary
 ```
 
 This is in line with other work that we have conducted with this dataset

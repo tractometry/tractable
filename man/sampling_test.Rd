@@ -80,10 +80,11 @@ for each shuffled sample.
 df_afq <- read.csv("/path/to/afq/output.csv")
 df_tract <- df_afq[which(df_afq$tractID == tract), ]
 bootstrap_coefs <- sampling_test(df_afq,
-                                 dwi_metric = "dti_fa",
-                                 covariates = list("group", "sex"),
-                                 family = "gamma",
-                                 k = 40,
-                                 n_samples = 1000)
+  dwi_metric = "dti_fa",
+  covariates = list("group", "sex"),
+  family = "gamma",
+  k = 40,
+  n_samples = 1000
+)
 }
 }

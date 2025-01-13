@@ -5,20 +5,23 @@
 \title{Bootstrap an AFQ dataframe}
 \usage{
 bootstrap_df(
-  input_df,
-  dwi_metric,
-  group_by = "group",
-  participant_id = "subjectID"
+  df,
+  target,
+  node_col = "nodeID",
+  node_group = "group",
+  participant_col = "subjectID"
 )
 }
 \arguments{
-\item{input_df}{The input AFQ dataframe}
+\item{df}{The input AFQ dataframe}
 
-\item{dwi_metric}{The diffusion MRI metric (e.g. "FA", "MD")}
+\item{target}{The diffusion MRI metric (e.g. "FA", "MD")}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms}
+\item{node_col}{description}
 
-\item{participant_id}{The name of the column that encodes participant ID}
+\item{node_group}{The grouping variable used to group nodeID smoothing terms}
+
+\item{participant_col}{The name of the column that encodes participant ID}
 }
 \value{
 A shuffled AFQ dataframe

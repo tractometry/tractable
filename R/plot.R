@@ -43,7 +43,6 @@ tract_name <- function(tract) {
     "SLF_L" = "LeftSLF",
     tract
   )
-
   return(name)
 }
 
@@ -61,7 +60,7 @@ utils::globalVariables(c("metric", "tracts", "nodeID", "value"))
 #'     to subjectID.
 #' @param participant_id The name of the column that encodes participant ID
 #' @param group_by The grouping variable used to group nodeID smoothing terms
-#' @param out_dir directory in which to save plots
+#' @param output_dir directory in which to save plots
 #'
 #' @export
 #'
@@ -78,7 +77,7 @@ utils::globalVariables(c("metric", "tracts", "nodeID", "value"))
 #'                  df_tract = df_afq,
 #'                  dwi_metric = "dti_fa",
 #'                  covariates = c("group", "sex"),
-#'                  out_dir = ".")
+#'                  output_dir = ".")
 #' }
 plot_gam_splines <- function(
     gam_model,
@@ -88,7 +87,7 @@ plot_gam_splines <- function(
     covariates,
     group_by       = "group",
     participant_id = "subjectID",
-    out_dir
+    output_dir
 ) {
   # generate predictions
   values <- vector(mode = "list", length = length(covariates))
@@ -141,7 +140,7 @@ plot_gam_splines <- function(
     values = cbbPalette,
   )
 
-  plot_filename <- file.path(out_dir,
+  plot_filename <- file.path(output_dir,
                              paste0("plot_gam_", sub(" ", "_", tract), ".png"))
 
   ggplot2::ggsave(
@@ -174,7 +173,7 @@ plot_gam_splines <- function(
 #'   Gavin Simpson's code, here the Bayesian posterior covariance matrix of
 #'   the parameters is uncertainty corrected (unconditional=TRUE) to reflect
 #'   the uncertainty on the estimation of smoothness parameters.
-#' @param out_dir Directory in which to save plots
+#' @param output_dir Directory in which to save plots
 #'
 #' @return A dataframe of spline differences at each node
 #' @export
@@ -191,7 +190,7 @@ plot_gam_splines <- function(
 #'                       tract = "OR",
 #'                       factor_a = "0",
 #'                       factor_b = "1",
-#'                       out_dir = ".")
+#'                       output_dir = ".")
 #' }
 spline_diff <- function(gam_model,
                         tract,
@@ -200,7 +199,7 @@ spline_diff <- function(gam_model,
                         factor_b,
                         save_output = TRUE,
                         sim.ci = FALSE,
-                        out_dir) {
+                        output_dir) {
   # determine bottom of plot
   comp <- list(c(factor_a, factor_b))
   names(comp) <- c(group_by)
@@ -226,7 +225,7 @@ spline_diff <- function(gam_model,
   if (save_output) {
     # set output
     grDevices::png(
-      filename = file.path(out_dir, paste0(
+      filename = file.path(output_dir, paste0(
         "plot_diff_", sub(" ", "_", tract), "_pair.png"
       )),
       width = 600, height = 600
@@ -284,26 +283,30 @@ spline_diff <- function(gam_model,
 
 #' Plot tract profiles for each tract as a facet and each metric as a figure.
 #'
-#' @param df Data frame.
-#' @param metrics Name(s) of the metrics to plot per figure, character vector.
-#'          By default, will be all diffusion metrics in the provided data frame.
-#' @param tracts Name(s) of the tract tracts to plot per facet, character
-#'          vector. By default, will be all tract tracts in the provided data
-#'          frame.
-#' @param tracts_col Name of the column in the provided data frame with the
-#'          tract tracts.
-#' @param group_col Name of the column in the data frame to group by as a color,
-#'          character. By default, no grouping variable is provided.
-#' @param line_func Line function that provides the line positioning. See
-#'          \link[ggplot2]{stat_summary} for more information.
-#' @param linewidth Line thickness of the tract profile line.
-#' @param ribbon_func Ribbon function that provides the range for the ribbon.
-#'          See \link[ggplot2]{stat_summary} for more information.
-#' @param ribbon_alpha Ribbon alpha level.
-#' @param n_groups Number of groups to split a numeric grouping variable.
-#' @param pal_name Grouping color palette name, character. Default is colorblind.
-#' @param out_dir Output directory of saved plots.
-#' @param figsize Figure size. A numeric vector of (width, height) in inches.
+#' @param df            Data frame.
+#' @param metrics       Name(s) of the metrics to plot per figure, character vector.
+#'                      By default, will be all diffusion metrics in the 
+#'                      provided data frame.
+#' @param tracts        Name(s) of the tract tracts to plot per facet, character
+#'                      vector. By default, will be all tract tracts in the provided data
+#'                      frame.
+#' @param tract_col     Name of the column in the provided data frame with the
+#'                      tracts.
+#' @param group_col     Name of the column in the data frame to group by as a
+#'                      color, character. By default, no grouping variable is provided.
+#' @param line_func     Line function that provides the line positioning. See
+#'                      [ggplot2::stat_summary] for more information.
+#' @param linewidth     Line thickness of the tract profile line.
+#' @param ribbon_func   Ribbon function that provides the range for the ribbon.
+#'                      See [ggplot2::stat_summary] for more information.
+#' @param ribbon_alpha  Ribbon alpha level.
+#' @param n_groups      Number of groups to split a numeric grouping variable.
+#' @param pal_name      Grouping color palette name, character. 
+#'                      Default: Colorblind palette.
+#' @param output_dir    Output directory for the plot images.
+#'                      Default: Current working directory.
+#' @param ...           Keyword arguments to be passed to [ggplot2::ggsave].
+#'                      
 #'
 #' @return List of plot handles corresponding to the specified metrics.
 #'
@@ -311,10 +314,10 @@ spline_diff <- function(gam_model,
 #'
 #' @examples
 #' \dontrun{
-#' df <- read_afq_sarica()
+#' df_sarica <- read_afq_sarica(na_omit = TRUE)
 #'
 #'plot_tract_profiles(
-#'   df,
+#'   df_sarica,
 #'   metrics = c("fa"),
 #'   tracts = c("Left Corticospinal", "Right Corticospinal"),
 #'   group_col = "class",
@@ -322,9 +325,9 @@ spline_diff <- function(gam_model,
 #')
 #'
 #'plot_tract_profiles(
-#'   df,
-#'   metrics = c("fa"),
-#'   tracts = c("Left Corticospinal", "Right Corticospinal"),
+#'   df_sarica,
+#'   metrics   = "fa"
+#'   tracts    = c("Left Corticospinal", "Right Corticospinal"),
 #'   group_col = "age",
 #'   n_groups  = 3,
 #'   pal_name  = "Spectral",
@@ -333,9 +336,9 @@ spline_diff <- function(gam_model,
 #'}
 plot_tract_profiles <- function (
     df,
-    metrics      = NULL,
-    tracts      = NULL,
-    tracts_col  = "tractID",
+    y            = NULL,
+    tracts       = NULL,
+    tract_col    = "tractID",
     group_col    = NULL,
     line_func    = "mean",
     linewidth    = 1,
@@ -343,9 +346,10 @@ plot_tract_profiles <- function (
     ribbon_alpha = 0.25,
     n_groups     = 3,
     pal_name     = "colorblind",
-    out_dir      = getwd(),
-    figsize      = c(8, 11.5)
+    output_dir   = getwd(),
+    ... 
 ) {
+  
 
   # argument preparation
   if (is.null(metrics)) {
@@ -355,7 +359,7 @@ plot_tract_profiles <- function (
   }
 
   if (is.null(tracts)) {
-    tracts <- unique(df[[tracts_col]])
+    tracts <- unique(df[[tract_col]])
   }
 
   if (is.null(group_col)) {
@@ -429,12 +433,9 @@ plot_tract_profiles <- function (
     plot_fname <- paste0("tract-profile_by-", group_col, "_",
                          stringr::str_replace_all(curr_metric, "_", "-"), ".png")
     ggplot2::ggsave(
-      filename = file.path(out_dir, plot_fname),
+      filename = file.path(output_dir, plot_fname),
       plot     = plot_handle,
-      width    = figsize[1],
-      height   = figsize[2],
-      units    = "in",
-      device   = "png"
+      ...      = ...
     )
 
     # collect plot handles by metric
