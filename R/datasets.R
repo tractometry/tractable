@@ -1,3 +1,6 @@
+# Set Dummy Global Variables to appease R CMD check
+utils::globalVariables("subjectID")
+
 #' Create a merged AFQ and phenotype dataframe
 #'
 #' @param nodes_file    Path to a nodes file.

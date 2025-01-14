@@ -83,7 +83,7 @@ reasons. See \link[mgcv:bam]{bam} for more information.
 Default: TRUE}
 
 \item{...}{Further keyword arguments to be passed to
-\link[=estimate_basis_smooth]{estimate_basis_smooth}
+\link[=estimate_smooth_basis]{estimate_smooth_basis}
 and \link[mgcv:bam]{bam}}
 }
 \value{

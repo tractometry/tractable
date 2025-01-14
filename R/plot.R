@@ -14,6 +14,8 @@ PALETTE_NAMES    <- c("cb", "cbb", "colorblind", "colorblind_black",
 RIBBON_FUNCTIONS <- c("mean_cl_boot", "mean_cl_normal", "mean_sdl", 
                       "median_hilow")
 
+# Set Dummy Global Variables to appease R CMD check
+utils::globalVariables(c("x", "ymin", "ymax", "group"))
 
 #' Retrieve tract name from abbreviation
 #'

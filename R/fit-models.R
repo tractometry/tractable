@@ -2,6 +2,9 @@
 FAMILY_FUNCTION_NAMES <- c("beta", "gamma" , "gaussian", "norm")
 MGCV_METHODS <- c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")
 
+# Set Dummy Global Variables to appease R CMD check
+utils::globalVariables("ar_start")
+
 #' Build a GAM formula.
 #' 
 #' @description
@@ -284,18 +287,6 @@ estimate_smooth_basis <- function(...) {
   UseMethod("estimate_smooth_basis")
 }
 
-# Reordering parameters in documentation (hack)
-# See: https://github.com/r-lib/roxygen2/issues/1475
-
-#' @rdname estimate_smooth_basis
-#' @name estimate_smooth_basis
-#' @aliases NULL
-#' @usage NULL
-#' @order 0
-estimate_smooth_basis_dummy <- function(
-  target, smooth_terms, formula, df, regressors, k_values, bs, kindex_thr, 
-  pvalue_thr, family, method, discrete, ...
-) { NULL }
 
 #' @rdname estimate_smooth_basis
 #' @export
@@ -559,7 +550,7 @@ estimate_smooth_basis.formula <- function(
 #'                        Default: TRUE
 #' @param formula         Explicit formula to use for the GAM model. 
 #' @param ...             Further keyword arguments to be passed to 
-#'                        [estimate_basis_smooth][tractable::estimate_basis_smooth] 
+#'                        [estimate_smooth_basis][tractable::estimate_smooth_basis] 
 #'                        and [bam][mgcv::bam]
 #' 
 #' @return Fit GAM model object.
@@ -617,20 +608,6 @@ estimate_smooth_basis.formula <- function(
 fit_gam <- function(...) {
   UseMethod("fit_gam")
 }
-
-# Reordering parameters in documentation (hack)
-# See: https://github.com/r-lib/roxygen2/issues/1475
-
-#' @rdname fit_gam
-#' @name fit_gam
-#' @aliases NULL
-#' @usage NULL
-#' @order 0
-fit_gam_dummy <- function(
-  target, formula, df, regressors, node_col, node_k, node_group, 
-  participant_col, autocor, family, method, discrete, ...
-) { NULL }
-
 
 #' @rdname fit_gam
 #' @export
@@ -1037,3 +1014,30 @@ save_gam <- function(
   )
   return(family_func)
 }
+
+# Documentation Helpers
+
+# Reordering parameters in documentation (hack)
+# See: https://github.com/r-lib/roxygen2/issues/1475
+
+
+#' @rdname estimate_smooth_basis
+#' @name estimate_smooth_basis
+#' @aliases NULL
+#' @usage NULL
+#' @order 0
+estimate_smooth_basis_dummy <- function(
+  target, smooth_terms, formula, df, regressors, k_values, bs, kindex_thr, 
+  pvalue_thr, family, method, discrete, ...
+) { NULL }
+
+
+#' @rdname fit_gam
+#' @name fit_gam
+#' @aliases NULL
+#' @usage NULL
+#' @order 0
+fit_gam_dummy <- function(
+  target, formula, df, regressors, node_col, node_k, node_group, 
+  participant_col, autocor, family, method, discrete, ...
+) { NULL }
