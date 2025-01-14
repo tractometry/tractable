@@ -1,5 +1,4 @@
 test_that("build_formula runs as expected", {
-
   expect_identical(
     build_formula(target = "fa"),
     as.formula("fa ~ s(nodeID) + s(subjectID, bs = 're')", env = .GlobalEnv)
@@ -76,14 +75,14 @@ test_that("estimate_smooth_basis.default runs as expected", {
 
   estimated_information <- estimate_smooth_basis(
     target       = "md", 
-    smooth_terms = "s(nodeID, bs = 'ts', k = seq(2, 20, 8))", 
+    smooth_terms = "s(nodeID, bs = 'ts', k = seq(12, 24, 4))", 
     df           = df_sarica, 
   )
-  expected_term <- "s(nodeID, bs = 'ts', k = 18)"
+  expected_term <- "s(nodeID, bs = 'ts', k = 20)"
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term)
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
+  expect_true(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
   
   estimated_information <- estimate_smooth_basis(
     target       = "fa", 
@@ -95,7 +94,7 @@ test_that("estimate_smooth_basis.default runs as expected", {
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term)
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
+  expect_true(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
   
   estimated_information <- estimate_smooth_basis(
     target       = "fa", 
@@ -109,11 +108,11 @@ test_that("estimate_smooth_basis.default runs as expected", {
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term)
-  expect_identical(expected_values$k_index > 0.98 && expected_values$p_value > 0.1, TRUE)
+  expect_true(expected_values$k_index > 0.98 && expected_values$p_value > 0.1)
 
   estimated_information <- estimate_smooth_basis(
     target       = "fa", 
-    smooth_terms = c("s(age, k = 1:10)", "s(nodeID, by = group, bs = 'fs', k = c(7,9), m = 3)"),
+    smooth_terms = c("s(age, k = 1:10)", "s(nodeID, by = group, bs = 'fs', k = c(4,9), m = 3)"),
     df           = df_sarica, 
     regressors   = "group"
   )
@@ -121,10 +120,10 @@ test_that("estimate_smooth_basis.default runs as expected", {
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term[1]) # age term
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, FALSE)
+  expect_false(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term[2]) # node term
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
+  expect_true(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
 })
 
 
@@ -133,14 +132,14 @@ test_that("estimate_smooth_basis.formula runs as expected", {
     dplyr::filter(tractID == "Right Corticospinal")
 
   estimated_information <- estimate_smooth_basis(
-    formula = md ~ s(nodeID, bs = "ts", k = seq(2, 20, 8)), 
+    formula = md ~ s(nodeID, bs = "ts", k = seq(12, 24, 4)), 
     df      = df_sarica
   )
-  expected_term <- "s(nodeID, bs = 'ts', k = 18)"
+  expected_term <- "s(nodeID, bs = 'ts', k = 20)"
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term)
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
+  expect_true(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
   
   estimated_information <- estimate_smooth_basis(
     formula = fa ~ age + group + s(nodeID, by = group, bs = "fs"), 
@@ -150,7 +149,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term)
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
+  expect_true(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
   
   estimated_information <- estimate_smooth_basis(
     formula    = fa ~ age + group + s(nodeID, by = group, bs = "fs", k = c(4, 11)),
@@ -162,21 +161,21 @@ test_that("estimate_smooth_basis.formula runs as expected", {
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term)
-  expect_identical(expected_values$k_index > 0.98 && expected_values$p_value > 0.1, TRUE)
+  expect_true(expected_values$k_index > 0.98 && expected_values$p_value > 0.1)
 
   estimated_information <- estimate_smooth_basis(
     formula = fa ~ group + s(age, k = 1:10) 
-      + s(nodeID, by = group, bs = "fs", k = c(7,9), m = 3), 
+      + s(nodeID, by = group, bs = "fs", k = c(4,9), m = 3), 
     df      = df_sarica, 
   )
   expected_term <- c("s(age, bs = 'tp', k = 10)", "s(nodeID, by = group, bs = 'fs', m = 3, k = 9)")
   expect_identical(estimated_information$est_terms, expected_term)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term[1]) # age term
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, FALSE)
+  expect_false(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
   expected_values <- estimated_information$k_estimates %>% 
     dplyr::filter(term == expected_term[2]) # node term
-  expect_identical(expected_values$k_index > 0.95 && expected_values$p_value > 0.05, TRUE)
+  expect_true(expected_values$k_index > 0.95 && expected_values$p_value > 0.05)
 })
 
 
