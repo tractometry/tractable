@@ -4,10 +4,15 @@
 \alias{read_afq_weston_havens}
 \title{Load tract profiles from Yeatman et al.}
 \usage{
-read_afq_weston_havens(...)
+read_afq_weston_havens(na_omit = FALSE, ...)
 }
 \arguments{
-\item{...}{arguments to be passed to read.csv}
+\item{na_omit}{A logical indicating whether rows with NA values should be
+removed from the data frame before returning.
+Default: FALSE}
+
+\item{...}{Further keyword arguments to be passed to the file reading
+function: \link[readr:read_delim]{readr::read_csv} or \link[readr:read_delim]{readr::read_tsv}.}
 }
 \value{
 A merged dataframe with data from Yeatman et al.

@@ -5,32 +5,37 @@
 \title{Bootstrap an AFQ dataframe}
 \usage{
 bootstrap_df(
-  input_df,
-  dwi_metric,
-  group_by = "group",
-  participant_id = "subjectID"
+  df,
+  target,
+  node_col = "nodeID",
+  node_group = "group",
+  participant_col = "subjectID"
 )
 }
 \arguments{
-\item{input_df}{The input AFQ dataframe}
+\item{df}{The input dataframe.}
 
-\item{dwi_metric}{The diffusion MRI metric (e.g. "FA", "MD")}
+\item{target}{The column name that encodes the metric to model.}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms}
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID"}
 
-\item{participant_id}{The name of the column that encodes participant ID}
+\item{node_group}{The column name to group the tract node smooth by.
+Default: NULL.}
+
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
 }
 \value{
 A shuffled AFQ dataframe
 }
 \description{
-This function bootstrap samples an AFQ dataframe by participant.
-That is, it first pivots to wide format with one row per participant,
-bootstrap samples, and finally pivots back to long format.
+This function bootstrap samples an AFQ dataframe by participant. That is, it
+first pivots to wide format with one row per participant, bootstrap samples,
+and finally pivots back to long format.
 }
 \examples{
 \dontrun{
 df_afq <- read.csv("/path/to/afq/output.csv")
-df_boot <- bootstrap_df(df_afq, "dti_fa")
-}
+df_bootstrap <- bootstrap_df(df_afq, "dti_fa")}
 }

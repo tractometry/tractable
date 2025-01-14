@@ -4,12 +4,18 @@
 \alias{read_afq_hbn}
 \title{Load tract profiles from the Healthy Brain Network dataset}
 \usage{
-read_afq_hbn(truncate = FALSE, ...)
+read_afq_hbn(truncate = FALSE, na_omit = FALSE, ...)
 }
 \arguments{
-\item{truncate}{if TRUE, truncate the data to 49 rows. default = FALSE}
+\item{truncate}{Truncate the dataset to 49 rows, logical.
+Default: FALSE.}
 
-\item{...}{arguments to be passed to read.csv}
+\item{na_omit}{A logical indicating whether rows with NA values should be
+removed from the data frame before returning.
+Default: FALSE}
+
+\item{...}{Further keyword arguments to be passed to the file reading
+function: \link[readr:read_delim]{readr::read_csv} or \link[readr:read_delim]{readr::read_tsv}.}
 }
 \value{
 A merged dataframe with data from HBN
@@ -18,7 +24,6 @@ A merged dataframe with data from HBN
 Load tract profiles from the Healthy Brain Network dataset
 }
 \examples{
-\dontrun{
-  df_hbn <- read_afq_hbn()
-}
+\dontrun{ 
+df_hbn <- read_afq_hbn()}
 }

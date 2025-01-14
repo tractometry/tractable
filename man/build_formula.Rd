@@ -2,44 +2,64 @@
 % Please edit documentation in R/fit-models.R
 \name{build_formula}
 \alias{build_formula}
-\title{Build a GAM formula dynamically}
+\title{Build a GAM formula.}
 \usage{
 build_formula(
   target,
-  covariates,
-  smooth_terms = NULL,
-  group_by = "group",
-  participant_id = "subjectID",
-  k
+  regressors = NULL,
+  node_col = "nodeID",
+  node_k = NULL,
+  node_group = NULL,
+  participant_col = "subjectID"
 )
 }
 \arguments{
-\item{target}{Diffusion metric to model}
+\item{target}{The column name that encodes the metric to model.}
 
-\item{covariates}{List of strings of GAM covariates, not including
-the smoothing terms over nodes and the random effect due to subjectID.
-This list can also include smoothing terms.}
+\item{regressors}{Column name or list of column names to use as
+regressors, not including node smoothing terms and
+the participant effects. This list can also include
+smoothing terms. Default: NULL.}
 
-\item{smooth_terms}{Smoothing terms, not including
-the smoothing terms over nodes and the random effect due to subjectID.}
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID".}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms}
+\item{node_k}{The basis dimensions used to represent the node
+smoother. If \code{node_group}, the basis value is applied
+to the group as well. Default: NULL}
 
-\item{participant_id}{The name of the column that encodes participant ID}
+\item{node_group}{The column name to group the tract node smooth by.
+Default: NULL.}
 
-\item{k}{Dimension of the basis used to represent the node smoothing term}
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
 }
 \value{
-A GAM formula
+A GAM formula.
 }
 \description{
-Build a GAM formula dynamically
+Function used to build a generic GAM formula string from the given arguments.
+The function automatically includes a tract node smoothing term (with or
+without a grouping term) and a participant random effects (random intercept).
+Any regressor terms are included as additive effects.
+}
+\details{
+The formula is build under the logic:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{target ~ regressors 
+  + s(node_col, <by = node_group>, <k = node_k>)
+  + s(participant_col, bs = "re")
+}\if{html}{\out{</div>}}
+
+with \verb{<variables>} indicating optional components.
 }
 \examples{
-formula <- build_formula(target = "dti_fa",
-                         covariates = c("group", "sex"),
-                         k = 40)
-formula <- build_formula(target = "dki_md",
-                         covariates = c("group", "sex", "s(age, by=sex)"),
-                         k = 32)
+formula <- build_formula(target = "dti_fa", node_k = 40)
+
+formula <- build_formula(
+  target     = "dki_md",
+  regressors = c("group", "sex"), 
+  node_k     = 32, 
+  node_group = "group"
+)
 }

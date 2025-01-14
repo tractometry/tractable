@@ -4,10 +4,10 @@
 \alias{tract_name}
 \title{Retrieve tract name from abbreviation}
 \usage{
-tract_name(tract)
+tract_name(tract_abbr)
 }
 \arguments{
-\item{tract}{AFQ tract abbreviation}
+\item{tract_abbr}{AFQ tract abbreviation}
 }
 \value{
 Formatted tract name
@@ -16,6 +16,6 @@ Formatted tract name
 Retrieve tract name from abbreviation
 }
 \examples{
-name <- tract_name("OR")
-name <- tract_name("CST_L")
+full_name <- tract_name("OR")
+full_name <- tract_name("CST_L")
 }

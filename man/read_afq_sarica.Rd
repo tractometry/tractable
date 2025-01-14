@@ -4,10 +4,15 @@
 \alias{read_afq_sarica}
 \title{Load tract profiles from Sarica et al.}
 \usage{
-read_afq_sarica(...)
+read_afq_sarica(na_omit = FALSE, ...)
 }
 \arguments{
-\item{...}{arguments to be passed to read.csv}
+\item{na_omit}{A logical indicating whether rows with NA values should be
+removed from the data frame before returning.
+Default: FALSE}
+
+\item{...}{Further keyword arguments to be passed to the file reading
+function: \link[readr:read_delim]{readr::read_csv} or \link[readr:read_delim]{readr::read_tsv}.}
 }
 \value{
 A merged dataframe with data from Sarica et al.

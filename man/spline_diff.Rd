@@ -12,7 +12,7 @@ spline_diff(
   factor_b,
   save_output = TRUE,
   sim.ci = FALSE,
-  out_dir
+  output_dir = getwd()
 )
 }
 \arguments{
@@ -33,12 +33,12 @@ spline_diff(
 Gavin Simpson's blog of December 15, 2016:
 http://www.fromthebottomoftheheap.net/2016/12/15/simultaneous-interval-revisited/.
 This interval is calculated from simulations based. Please specify a seed
-(e.g., set.seed(123)) for reproducable results. Note: in contrast with
+(e.g., set.seed(123)) for reproducible results. Note: in contrast with
 Gavin Simpson's code, here the Bayesian posterior covariance matrix of
 the parameters is uncertainty corrected (unconditional=TRUE) to reflect
 the uncertainty on the estimation of smoothness parameters.}
 
-\item{out_dir}{Directory in which to save plots}
+\item{output_dir}{Directory in which to save plots}
 }
 \value{
 A dataframe of spline differences at each node
@@ -53,15 +53,19 @@ This function both
 \examples{
 \dontrun{
 df_afq <- read.csv("/path/to/afq/output.csv")
-gam_fit <- fit_gam(df_afq,
-                   target = "dti_fa",
-                   covariates = list("group", "sex"),
-                   family = "gamma",
-                   k = 40)
-df_diff = spline_diff(gam_model = gam_fit,
-                      tract = "OR",
-                      factor_a = "0",
-                      factor_b = "1",
-                      out_dir = ".")
-}
+
+gam_fit <- fit_gam(
+  df_afq,
+  target = "dti_fa",
+  covariates = list("group", "sex"),
+  family = "gamma",
+  k = 40
+)
+
+df_diff <- spline_diff(
+  gam_model = gam_fit,
+  tract = "OR",
+  factor_b = "1",
+  output_dir = "."
+)}
 }

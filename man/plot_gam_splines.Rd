@@ -12,7 +12,7 @@ plot_gam_splines(
   covariates,
   group_by = "group",
   participant_id = "subjectID",
-  out_dir
+  output_dir
 )
 }
 \arguments{
@@ -32,7 +32,7 @@ to subjectID.}
 
 \item{participant_id}{The name of the column that encodes participant ID}
 
-\item{out_dir}{directory in which to save plots}
+\item{output_dir}{directory in which to save plots}
 }
 \description{
 Plot GAM splines for each group
@@ -40,16 +40,20 @@ Plot GAM splines for each group
 \examples{
 \dontrun{
 df_afq <- read.csv("/path/to/afq/output.csv")
-gam_fit <- fit_gam(df_afq,
-                   target = "dti_fa",
-                   covariates = list("group", "sex"),
-                   family = "gamma",
-                   k = 40)
-plot_gam_splines(gam_model = gam_fit,
-                 tract = "OR",
-                 df_tract = df_afq,
-                 dwi_metric = "dti_fa",
-                 covariates = c("group", "sex"),
-                 out_dir = ".")
-}
+
+gam_fit <- fit_gam(
+  df_afq,
+  target = "dti_fa",
+  covariates = list("group", "sex"),
+  family = "gamma",
+  k = 40
+)
+
+plot_gam_splines(
+  gam_model = gam_fit,
+  tract = "OR",
+  df_tract = df_afq,
+  dwi_metric = "dti_fa",
+  covariates = c("group", "sex"),
+  output_dir = ".")}
 }

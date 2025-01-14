@@ -2,45 +2,59 @@
 % Please edit documentation in R/datasets.R
 \name{read_afq_files}
 \alias{read_afq_files}
-\title{Create a merged AFQ/phenotype dataframe}
+\title{Create a merged AFQ and phenotype dataframe}
 \usage{
 read_afq_files(
-  nodes_csv,
-  pheno_csv = NULL,
-  index = "subjectID",
-  index_nodes = index,
-  index_pheno = index,
-  dwi_metrics = NULL,
-  factor_cols = NULL,
-  pheno_cols = NULL,
+  nodes_file,
+  pheno_file = NULL,
+  by = "subjectID",
+  tract_col = "tractID",
+  node_col = "nodeID",
+  other_cols = NULL,
+  na_omit = FALSE,
   ...
 )
 }
 \arguments{
-\item{nodes_csv}{path to a nodes file}
+\item{nodes_file}{Path to a nodes file.}
 
-\item{pheno_csv}{path to a phenotypic file, leave NULL to return an "unsupervised" AFQ dataset}
+\item{pheno_file}{Path to a phenotypic file. If pheno_file = NULL returns
+an "unsupervised" AFQ dataset (no phenotypic data).}
 
-\item{index}{specification of the column used for merging}
+\item{by}{Column used for merging the nodes and phenotypic files.
+Default: "subjectID"
+\cr \cr
+If variable names differ between the nodes and
+phenotypic datasets, use a named character vector like
+by = c("x_a" = "y_a", "x_b" = "y_b").}
 
-\item{index_nodes}{specification of the column used for merging}
+\item{tract_col}{The column name that encodes tract names.
+Default: "tractID"}
 
-\item{index_pheno}{specification of the column used for merging}
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID"}
 
-\item{dwi_metrics}{which diffusion metrics should be retained}
+\item{other_cols}{Other column names to be included in the final
+data frame. Default: NULL}
 
-\item{factor_cols}{which columns should be treated as factors}
+\item{na_omit}{A logical indicating whether rows with NA values should
+be removed from the data frame before returning.
+Default: FALSE}
 
-\item{pheno_cols}{which columns to include from pheno file}
-
-\item{...}{arguments to be passed to read.csv}
+\item{...}{Further keyword arguments to be passed to the file
+reading function: \link[readr:read_delim]{readr::read_csv} or \link[readr:read_delim]{readr::read_tsv}.}
+}
+\value{
+An AFQ dataset.
 }
 \description{
-Create a merged AFQ/phenotype dataframe
+Create a merged AFQ and phenotype dataframe
 }
 \examples{
 \dontrun{
-  df_afq <- read_afq_files(nodes_csv = "a/path/to/nodes.csv",
-                           pheno_csv = "a/path/to/pheno.csv")
+df_afq <- read_afq_files(
+  nodes_file = "path/to/nodes.csv",
+  pheno_file = "path/to/pheno.csv"
+)
 }
 }

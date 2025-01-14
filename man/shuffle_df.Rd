@@ -5,40 +5,49 @@
 \title{Shuffle an AFQ dataframe}
 \usage{
 shuffle_df(
-  input_df,
-  dwi_metric,
-  group_by = "group",
-  participant_id = "subjectID",
-  shuffle_vars = NULL,
+  df,
+  target,
+  shuffle_cols = NULL,
+  node_col = "nodeID",
+  node_group = NULL,
+  tract_col = "tractID",
+  participant_col = "subjectID",
   sample_uniform = FALSE
 )
 }
 \arguments{
-\item{input_df}{The input AFQ dataframe}
+\item{df}{The input dataframe.}
 
-\item{dwi_metric}{The diffusion MRI metric (e.g. "FA", "MD")}
+\item{target}{The column name that encodes the metric to model.}
 
-\item{group_by}{The grouping variable used to group nodeID smoothing terms}
+\item{shuffle_cols}{Column names that should be shuffled.}
 
-\item{participant_id}{The name of the column that encodes participant ID}
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID"}
 
-\item{shuffle_vars}{List of strings of column names that should be shuffled}
+\item{node_group}{The column name to group the tract node smooth by.
+Default: NULL.}
+
+\item{tract_col}{The column name that encodes tract names.
+Default: "tractID"}
+
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
 
 \item{sample_uniform}{Boolean flag. If TRUE, shuffling should sample
-uniformly from the unique values in the columns. If FALSE, shuffling
-will shuffle without replacement.}
+uniformly from the unique values in the columns. If
+FALSE, shuffling will shuffle without replacement.}
 }
 \value{
 A shuffled AFQ dataframe
 }
 \description{
-This function shuffles participants' age, group, and sex,
-thereby destroying correlations between the participants'
-tract profiles and phenotypic data.
+This function shuffles participants' demographic information (i.e., age,
+group, sex), thereby destroying correlations between participants' tract
+profiles and phenotypic data.
 }
 \examples{
 \dontrun{
-df_afq <- read.csv("/path/to/afq/output.csv")
-df_shuffle <- shuffle_df(df_afq, "dti_fa")
-}
+df_afq <- read_csv("/path/to/afq/output.csv")
+df_shuffled <- shuffle_df(df_afq, target = "dti_fa")}
 }

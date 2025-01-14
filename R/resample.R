@@ -1,112 +1,170 @@
 #' Shuffle an AFQ dataframe
 #'
-#' This function shuffles participants' age, group, and sex,
-#' thereby destroying correlations between the participants'
-#' tract profiles and phenotypic data.
+#' @description
+#' This function shuffles participants' demographic information (i.e., age, 
+#' group, sex), thereby destroying correlations between participants' tract 
+#' profiles and phenotypic data.
 #'
-#' @param input_df The input AFQ dataframe
-#' @param dwi_metric The diffusion MRI metric (e.g. "FA", "MD")
-#' @param group_by The grouping variable used to group nodeID smoothing terms
-#' @param participant_id The name of the column that encodes participant ID
-#' @param shuffle_vars List of strings of column names that should be shuffled
-#' @param sample_uniform Boolean flag. If TRUE, shuffling should sample
-#'     uniformly from the unique values in the columns. If FALSE, shuffling
-#'     will shuffle without replacement.
+#' @param df              The input dataframe. 
+#' @param target          The column name that encodes the metric to model.
+#' @param shuffle_cols    Column names that should be shuffled.
+#' @param node_col        The column name that encodes tract node positions.
+#'                        Default: "nodeID"
+#' @param node_group      The column name to group the tract node smooth by.
+#'                        Default: NULL.
+#' @param tract_col       The column name that encodes tract names.
+#'                        Default: "tractID"
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID".
+#' @param sample_uniform  Boolean flag. If TRUE, shuffling should sample 
+#'                        uniformly from the unique values in the columns. If 
+#'                        FALSE, shuffling will shuffle without replacement.
 #'
 #' @return A shuffled AFQ dataframe
-#' @export
 #'
 #' @examples
 #' \dontrun{
-#' df_afq <- read.csv("/path/to/afq/output.csv")
-#' df_shuffle <- shuffle_df(df_afq, "dti_fa")
-#' }
-shuffle_df <- function(input_df, dwi_metric, group_by = "group", participant_id = "subjectID", shuffle_vars = NULL, sample_uniform = FALSE) {
-  # Spread the input dataframe to one row per participant
-  col_names <- colnames(input_df)
-  wide_df <- tidyr::pivot_wider(
-    input_df,
-    names_from = "nodeID",
-    values_from = dwi_metric
+#' df_afq <- read_csv("/path/to/afq/output.csv")
+#' df_shuffled <- shuffle_df(df_afq, target = "dti_fa")}
+#' @export
+shuffle_df <- function(
+  df,
+  target,
+  shuffle_cols    = NULL,
+  node_col        = "nodeID", 
+  node_group      = NULL,
+  tract_col       = "tractID", 
+  participant_col = "subjectID",
+  sample_uniform  = FALSE
+) {
+  # argument input control 
+  stopifnot("`df` must be a class data.frame or tibble" = 
+    any(class(df) %in% c("data.frame", "tbl_df")))
+  stopifnot("`target` must be a character" = is.character(target))
+  if (!is.null(shuffle_cols)) {
+    stopifnot("`shuffle_cols` must be a character" = is.character(shuffle_cols))
+  }
+  stopifnot("`node_col` must be a character" = is.character(node_col))
+  if (!is.null(node_group)) {
+    stopifnot("`node_group` must be a character" = is.character(node_group))
+  }
+  stopifnot("`tract_col` must be a character" = is.character(tract_col))
+  stopifnot("`participant_col` must be a character" = is.character(participant_col))
+  stopifnot("`sample_uniform` must be a logical" = is.logical(sample_uniform))
+
+  # pivot data frame to one row per participant
+  df_wide <- tidyr::pivot_wider(
+    data        = df,
+    names_from  = tidyselect::all_of(node_col),
+    values_from = tidyselect::all_of(target)
   )
 
-  if (is.null(shuffle_vars)) {
-    shuffle_vars <- col_names[-which(col_names %in% c("nodeID", "tractID", dwi_metric, participant_id))]
+  # if not given, determine shuffle columns
+  original_colnames <- colnames(df)
+  if (is.null(shuffle_cols)) {
+    static_cols <- c(participant_col, node_col, tract_col, node_group, target)
+    shuffle_cols <- original_colnames[!original_colnames %in% static_cols]
   }
 
-  # Then shuffle participants' shuffle_vars and the grouping variable
-  for (svar in unique(c(shuffle_vars, group_by))) {
+  # shuffle participants' shuffle_cols and the grouping variable
+  for (svar in unique(c(shuffle_cols, node_group))) {
+    x <- df_wide[[svar]] # current values to shuffle
     if (sample_uniform) {
-      # Sample uniformly from the unique values
-      wide_df[[svar]] <- sample(unique(wide_df[[svar]]), length(wide_df[[svar]]), replace=TRUE)
+      # sample uniformly from the unique values (with replacement)
+      df_wide[[svar]] <- sample(unique(x), length(x), replace = TRUE)
     } else {
-      # Shuffle the existing values
-      wide_df[[svar]] <- sample(wide_df[[svar]], length(wide_df[[svar]]))
+      # sample and shuffle the existing values
+      df_wide[[svar]] <- sample(x, length(x))
     }
   }
 
-  # Gather back to long format (one row per node)
-  output_df <- tidyr::pivot_longer(
-    wide_df,
-    -dplyr::any_of(c(participant_id, shuffle_vars, "tractID", group_by)),
-    names_to = "nodeID",
-    values_to = dwi_metric
-  )
+  # return to long format (one row per node)
+  df_shuffled <- tidyr::pivot_longer(
+    data      = df_wide,
+    cols      = tidyselect::all_of(as.character(unique(df[[node_col]]))),
+    names_to  = node_col, 
+    values_to = target
+  ) %>% 
+    dplyr::select(tidyselect::all_of(original_colnames)) 
 
-  output_df <- dplyr::select(output_df, dplyr::all_of(col_names))
-  output_df$nodeID <- as.integer(output_df$nodeID)
+  # format column class to match original
+  for (var in original_colnames) {
+    class(df_shuffled[[var]]) <- class(df[[var]])
+  }
 
-  return(output_df)
+  return(df_shuffled)
 }
+
 
 #' Bootstrap an AFQ dataframe
 #'
-#' This function bootstrap samples an AFQ dataframe by participant.
-#' That is, it first pivots to wide format with one row per participant,
-#' bootstrap samples, and finally pivots back to long format.
+#' @description
+#' This function bootstrap samples an AFQ dataframe by participant. That is, it 
+#' first pivots to wide format with one row per participant, bootstrap samples, 
+#' and finally pivots back to long format.
 #'
-#' @param input_df The input AFQ dataframe
-#' @param dwi_metric The diffusion MRI metric (e.g. "FA", "MD")
-#' @param group_by The grouping variable used to group nodeID smoothing terms
-#' @param participant_id The name of the column that encodes participant ID
-#'
+#' @param df              The input dataframe. 
+#' @param target          The column name that encodes the metric to model.
+#' @param node_col        The column name that encodes tract node positions.
+#'                        Default: "nodeID"
+#' @param node_group      The column name to group the tract node smooth by.
+#'                        Default: NULL.
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID".
+#' 
 #' @return A shuffled AFQ dataframe
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' df_afq <- read.csv("/path/to/afq/output.csv")
-#' df_boot <- bootstrap_df(df_afq, "dti_fa")
-#' }
-bootstrap_df <- function(input_df,
-                         dwi_metric,
-                         group_by = "group",
-                         participant_id = "subjectID") {
-  # Spread the input dataframe to one row per participant
-  col_names <- colnames(input_df)
-  wide_df <- tidyr::pivot_wider(
-    input_df,
-    names_from = "nodeID",
-    values_from = dwi_metric
-  )
+#' df_bootstrap <- bootstrap_df(df_afq, "dti_fa")}
+bootstrap_df <- function(
+  df,
+  target,
+  node_col        = "nodeID", 
+  node_group      = "group",
+  participant_col = "subjectID"
+) {
+  # argument input control 
+  stopifnot("`df` must be a class data.frame or tibble" = 
+    any(class(df) %in% c("data.frame", "tbl_df")))
+  stopifnot("`target` must be a character" = is.character(target))
+  stopifnot("`node_col` must be a character" = is.character(node_col))
+  if (!is.null(node_group)) {
+    stopifnot("`node_group` must be a character" = is.character(node_group))
+  }
+  stopifnot("`participant_col` must be a character" = is.character(participant_col))
 
-  wide_df <- dplyr::slice_sample(wide_df, n = length(wide_df), replace = TRUE)
+  # pivot data frame to one row per participant
+  df_wide <- tidyr::pivot_wider(
+    data        = df,
+    names_from  = tidyselect::all_of(node_col), 
+    values_from = tidyselect::all_of(target)
+  ) %>% 
+    dplyr::slice_sample(prop = 1, replace = TRUE)
 
-  dont_pivot_cols <- col_names[-which(col_names %in% c("nodeID", dwi_metric))]
+  # determine columns not used for pivoting
+  original_colnames <- colnames(df)
+  static_cols <- original_colnames[!original_colnames %in% c(node_col, target)]
 
-  # Gather back to long format (one row per node)
-  output_df <- tidyr::pivot_longer(
-    wide_df,
-    -dplyr::any_of(dont_pivot_cols),
-    names_to = "nodeID",
-    values_to = dwi_metric
-  )
+  # return to long format (one row per node)
+  df_bootstrap <- tidyr::pivot_longer(
+    data      = df_wide,
+    cols      = -tidyselect::all_of(static_cols),
+    names_to  = node_col,
+    values_to = target
+  ) %>% 
+    dplyr::select(tidyselect::all_of(original_colnames)) 
 
-  output_df <- dplyr::select(output_df, dplyr::all_of(col_names))
-  output_df$nodeID <- as.integer(output_df$nodeID)
+  # format column class to match original
+  for (var in original_colnames) {
+    class(df_bootstrap[[var]]) <- class(df[[var]])
+  }
 
-  return(output_df)
+  return(df_bootstrap)
 }
+
 
 #' Perform repeated sampling tests on an AFQ dataframe.
 #'
@@ -120,12 +178,12 @@ bootstrap_df <- function(input_df,
 #' between covariates and dwi_metrics. It then computes node-wise differences
 #' for each shuffled sample.
 #'
-#' @param df_tract AFQ Dataframe of node metric values for single tract
+#' @param df AFQ Dataframe of node metric values for single tract
 #' @param n_samples Number of sample tests to perform
-#' @param dwi_metric The diffusion metric to model (e.g. "FA", "MD")
+#' @param target The diffusion metric to model (e.g. "FA", "MD")
 #' @param tract AFQ tract name
 #' @param group_by The grouping variable used to group nodeID smoothing terms
-#' @param participant_id The name of the column that encodes participant ID
+#' @param participant_col The name of the column that encodes participant ID
 #' @param sample_uniform Boolean flag. If TRUE, shuffling should sample
 #'     uniformly from the unique values in the columns. If FALSE, shuffling
 #'     will shuffle without replacement.
@@ -144,106 +202,122 @@ bootstrap_df <- function(input_df,
 #'     Otherwise, do a bootstrap simulation.
 #'
 #' @return Dataframe with bootstrap or permutation test coefficients
-#' @export
 #'
 #' @examples
 #' \dontrun{
 #' df_afq <- read.csv("/path/to/afq/output.csv")
 #' df_tract <- df_afq[which(df_afq$tractID == tract), ]
 #' bootstrap_coefs <- sampling_test(df_afq,
-#'                                  dwi_metric = "dti_fa",
-#'                                  covariates = list("group", "sex"),
-#'                                  family = "gamma",
-#'                                  k = 40,
-#'                                  n_samples = 1000)
+#'   dwi_metric = "dti_fa",
+#'   covariates = list("group", "sex"),
+#'   family = "gamma",
+#'   k = 40,
+#'   n_samples = 1000
+#' )
 #' }
-sampling_test <- function(df_tract,
-                          n_samples,
-                          dwi_metric,
-                          tract,
-                          group_by = "group",
-                          participant_id = "subjectID",
-                          sample_uniform = FALSE,
-                          covariates = NULL,
-                          smooth_terms = NULL,
-                          k = NULL,
-                          family = NULL,
-                          formula = NULL,
-                          factor_a = NULL,
-                          factor_b = NULL,
-                          permute = FALSE) {
-  if (group_by %in% covariates) {
-    coefs <- vector(mode = "list", length = n_samples)
-    pvalues <- vector(mode = "list", length = n_samples)
-  }
-  node_diffs <- data.frame(nodeID = numeric(0),
-                           est = numeric(0),
-                           permIdx = numeric(0))
+#' #@export
+# sampling_test <- function(
+#   df_tract,
+#   n_samples,
+#   target,
+#   tract,
+#   node_col = "nodeID", 
+#   node_group = "group",
+#   participant_col = "subjectID",
+#   sample_uniform = FALSE,
+#   covariates = NULL,
+#   smooth_terms = NULL,
+#   k = NULL,
+#   family = NULL,
+#   formula = NULL,
+#   factor_a = NULL,
+#   factor_b = NULL,
+#   permute = FALSE
+# ) {
+#   if (group_by %in% covariates) {
+#     coefs <- vector(mode = "list", length = n_samples)
+#     pvalues <- vector(mode = "list", length = n_samples)
+#   }
+#   node_diffs <- data.frame(
+#     nodeID = numeric(0),
+#     est = numeric(0),
+#     permIdx = numeric(0)
+#   )
 
-  pb <- progress::progress_bar$new(total = n_samples)
-  for (idx in 1:n_samples) {
-    pb$tick()
+#   pb <- progress::progress_bar$new(total = n_samples)
+#   for (idx in 1:n_samples) {
+#     pb$tick()
 
-    if (permute) {
-      df_shuffle <- shuffle_df(input_df = df_tract,
-                               dwi_metric = dwi_metric,
-                               group_by = group_by,
-                               participant_id = participant_id,
-                               shuffle_vars = covariates,
-                               sample_uniform = sample_uniform)
-    } else {
-      df_shuffle <- bootstrap_df(input_df = df_tract,
-                                 dwi_metric = dwi_metric,
-                                 group_by = group_by,
-                                 participant_id = participant_id)
-    }
+#     if (permute) {
+#       df_shuffle <- shuffle_df(
+#         df              = df,
+#         target          = target,
+#         shuffle_cols    = covariates,
+#         node_col        = node_col, 
+#         node_group      = node_group,
+#         participant_col = participant_col,
+#         sample_uniform  = sample_uniform
+#       )
+#     } else {
+#       df_shuffle <- bootstrap_df(
+#         df              =  df,
+#         target          = target,
+#         node_group      = node_group,
+#         participant_col = participant_col
+#       )
+#     }
 
-    gam_shuffle <- fit_gam(df_tract = df_shuffle,
-                           target = dwi_metric,
-                           covariates = covariates,
-                           smooth_terms = smooth_terms,
-                           group_by = group_by,
-                           participant_id = participant_id,
-                           formula = formula,
-                           k = k,
-                           family = family)
-    ff <- summary(gam_shuffle)
-    pvalues[[idx]] <- ff$p.table[,"Pr(>|t|)"][[paste0(group_by, factor_b)]]
-    if (group_by %in% covariates) {
-      coef_name <- grep(paste0("^", group_by),
-                        names(gam_shuffle$coefficients),
-                        value = TRUE)
+#     gam_shuffle <- fit_gam(
+#       df_tract = df_shuffle,
+#       target = dwi_metric,
+#       covariates = covariates,
+#       smooth_terms = smooth_terms,
+#       group_by = group_by,
+#       participant_id = participant_id,
+#       formula = formula,
+#       k = k,
+#       family = family
+#     )
+#     ff <- summary(gam_shuffle)
+#     pvalues[[idx]] <- ff$p.table[, "Pr(>|t|)"][[paste0(group_by, factor_b)]]
+#     if (group_by %in% covariates) {
+#       coef_name <- grep(paste0("^", group_by),
+#         names(gam_shuffle$coefficients),
+#         value = TRUE
+#       )
 
-      coefs[[idx]] <- gam_shuffle$coefficients[[coef_name]]
-    }
+#       coefs[[idx]] <- gam_shuffle$coefficients[[coef_name]]
+#     }
 
-    if (!is.null(factor_a) & !is.null(factor_b)) {
-      df_pair <- spline_diff(gam_model = gam_shuffle,
-                             tract = tract,
-                             group_by = group_by,
-                             factor_a,
-                             factor_b,
-                             save_output = FALSE,
-                             out_dir = NULL)
+#     if (!is.null(factor_a) & !is.null(factor_b)) {
+#       df_pair <- spline_diff(
+#         gam_model = gam_shuffle,
+#         tract = tract,
+#         group_by = group_by,
+#         factor_a,
+#         factor_b,
+#         save_output = FALSE,
+#         out_dir = NULL
+#       )
 
-      df_pair$permIdx <- idx
-      df_pair <- dplyr::select(df_pair, c("nodeID", "est", "permIdx"))
-      node_diffs <- rbind(node_diffs, df_pair)
-    }
-  }
+#       df_pair$permIdx <- idx
+#       df_pair <- dplyr::select(df_pair, c("nodeID", "est", "permIdx"))
+#       node_diffs <- rbind(node_diffs, df_pair)
+#     }
+#   }
 
-  df_sampling_test <- tidyr::pivot_wider(
-    node_diffs,
-    names_from = "nodeID",
-    names_prefix = "node_",
-    values_from = "est",
-    id_cols = "permIdx"
-  )
+#   df_sampling_test <- tidyr::pivot_wider(
+#     node_diffs,
+#     names_from = "nodeID",
+#     names_prefix = "node_",
+#     values_from = "est",
+#     id_cols = "permIdx"
+#   )
 
-  if (group_by %in% covariates) {
-    df_sampling_test$group_coefs <- unlist(coefs)
-  }
+#   if (group_by %in% covariates) {
+#     df_sampling_test$group_coefs <- unlist(coefs)
+#   }
 
-  df_sampling_test$pvalue <- unlist(pvalues)
-  return(df_sampling_test)
-}
+#   df_sampling_test$pvalue <- unlist(pvalues)
+#   return(df_sampling_test)
+# }

@@ -6,9 +6,9 @@
 <!-- badges: start -->
 <!--insert CRAN status badge -->
 
-[![R-CMD-check](https://github.com/yeatmanlab/tractable/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/yeatmanlab/tractable/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/tractometry/tractable/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tractometry/tractable/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/yeatmanlab/tractable/branch/main/graph/badge.svg)](https://app.codecov.io/gh/yeatmanlab/tractable?branch=main)
+coverage](https://codecov.io/gh/tractometry/tractable/branch/main/graph/badge.svg)](https://app.codecov.io/gh/tractometry/tractable?branch=main)
 
 <!-- badges: end -->
 

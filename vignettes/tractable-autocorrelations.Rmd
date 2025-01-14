@@ -17,55 +17,51 @@ knitr::opts_chunk$set(
 
 This vignette demonstrates the use of an AR1 model within a GAM to account for
 autocorrelation of the error terms of the model. We will use data from the
-Sarica dataset [@Sarica2017] to demonstrate the how to include an autocorrelation
-term and its impact on the model statistics. 
+Sarica dataset [@Sarica2017] to demonstrate the how to include an autocorrelation term and its impact on the model statistics. 
 
 We start by loading the `tractable` library:
 
 ```{r setup}
 library(tractable)
+library(itsadug)
 ```
 
-Next, we will use a function that is included in `tractable` to read this dataset
-directly into memory. Importantly, both the group ("ALS" or "CTRL") and the
-subject identifier ("subjectID") need to be factors for subsequent analysis
-to work properly.
+Next, we will use a function that is included in `tractable` to read this dataset directly into memory. 
 
-```{r load data}
-sarica <- tractable::read_afq_sarica()
-sarica$group <- factor(sarica$class)
-sarica$subjectID <- unclass(factor(sarica$subjectID))
+Importantly, both the group ("ALS" or "CTRL") and the subject identifier ("subjectID") need to be factors for subsequent analysis to work properly.
+
+```{r load_data}
+df_sarica <- read_afq_sarica(na_omit = TRUE)
+df_sarica
 ```
 
 We will first fit a GAM model without any autocorrelation structure using the 
-`tractable_single_bundle` function. This model will use "group" and "age" to 
+`tractable_single_tract` function. This model will use "age" and "group" to 
 predict FA, while smoothing over the tract nodes. We will also use the automated
-procedure implemented in  `tractable_single_bundle` to determine the ideal value
-for `k`, a parameter used to determine the number of spline functions. The default behavior for `tractable_single_bundle` is to include the AR1 model. To avoid this, we set the parameter `autocor` to `FALSE`. 
+procedure implemented in  `tractable_single_tract` to determine the ideal value
+for `k`, a parameter used to determine the number of spline functions. The default behavior for `tractable_single_tract` is to include the AR1 model. To avoid this, we set the parameter `autocor` to `FALSE`. 
 
 
-```{r fit no ac model}
-gam_fit_cst_no_ac <- tractable::tractable_single_bundle(
-  df_afq         = sarica,
-  tract          = "Right Corticospinal",
-  participant_id = "subjectID",
-  group_by       = "group",
-  covariates     = c("age", "group"),
-  dwi_metric     = "fa",
-  k              = "auto",
-  autocor        = FALSE
+```{r fit_no_autocor_model}
+cst_fit_no_autocor <- tractable_single_tract(
+  df         = df_sarica,
+  tract      = "Right Corticospinal",
+  target     = "fa",
+  regressors = c("age", "group"),
+  node_group = "group",
+  k          = "auto",
+  autocor    = FALSE
 )
+
+cst_no_autocor_summary <- summary(cst_fit_no_autocor)
+cst_no_autocor_summary
 ```
 
 Examining the summary of the resulting GAM fit object shows us that the `k=16`
 is sufficiently large to describe the spatial variation of tract profile data.
 In addition, we see that there is a statistically significant effect of group
-(with a p-value of 4.66e-10) and no statistically significant effect of age
-(p=0.2748).
-
-```{r get no ac summary}
-summary(gam_fit_cst_no_ac)
-```
+(with a p-value of `r cst_no_autocor_summary$p.table["groupCTRL", "Pr(>|t|)"]`) and no statistically significant effect of age
+(p = `r cst_no_autocor_summary$p.table["age", "Pr(>|t|)"]`).
 
 To account for potential spatial autocorrelation of FA values along the length 
 of the tract profile, we can incorporate a AR1 model into our GAM. Briefly, this
@@ -73,36 +69,37 @@ AR1 model is a linear model that estimates the amount of influence of the FA val
 
 The AR1 model takes a parameter $\rho$ to estimate autocorrelation effects. We 
 can pass our initial model into the function `itsadug::start_value_rho` to 
-automatically determine the value of $\rho$. We can also plot the autocorrelation
-by setting `plot=TRUE` within that function (pictured below). 
+automatically determine the value of $\rho$. We can also plot the autocorrelation by setting `plot = TRUE` within that function (pictured below). 
 
-```{r calculate rho}
-rho = itsadug::start_value_rho(gam_fit_cst_no_ac)
-itsadug::start_value_rho(gam_fit_cst_no_ac, plot=T)
+```{r calculate_rho}
+rho <- start_value_rho(cst_fit_no_autocor)
+start_value_rho(cst_fit_no_autocor, plot = TRUE)
 ```
 
-By default, the `tractable_single_bundle` function will determine the value of 
+By default, the `tractable_single_tract` function will determine the value of 
 $\rho$ and incorporate the AR1 model into the GAM estimation. 
 
-```{r fit model including AR structure}
-gam_fit_cst <- tractable::tractable_single_bundle(
-  df_afq         = sarica,
-  tract          = "Right Corticospinal",
-  participant_id = "subjectID",
-  group_by       = "group",
-  covariates     = c("age", "group"),
-  dwi_metric     = "fa",
-  k              = "auto"
+```{r fit_autocor_model}
+cst_fit <- tractable_single_tract(
+  df         = df_sarica,
+  tract      = "Right Corticospinal",
+  target     = "fa",
+  regressors = c("age", "group"),
+  node_group = "group",
+  k          = "auto"
 )
+
+cst_summary <- summary(cst_fit)
+cst_summary
 ```
 
-Examining the summary of the resulting GAM fit object shows us that the inclusion
-of the AR1 model changes the resulting statistics of our model. Although there 
-is still a statistically significant effect of group (p=0.044), the value of the
-t-statistic on this term has changed from 6.243 to 2.015. 
+Examining the summary of the resulting GAM fit object shows us that the inclusion of the AR1 model changes the resulting statistics of our model. Although there  is still a statistically significant effect of group (p = `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`), the value of the t-statistic on this term has changed from `r cst_no_autocor_summary$p.table["groupCTRL", "t value"]` to `r cst_summary$p.table["groupCTRL", "t value"]`. 
 
-```{r summarise AR model}
-summary(gam_fit_cst)
+You can also examine the AR1 model residuals for autocorrelations with the `itsadug::acf_resid` function. 
+
+```{r plot_corrected_acf}
+acf_resid(cst_fit)
 ```
+
 
 ## References

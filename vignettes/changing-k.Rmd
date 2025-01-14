@@ -16,12 +16,10 @@ knitr::opts_chunk$set(
 ```
 
 This vignette demonstrates how a GAM model changes with increased flexibility.
-The data we will use here contains tract profiles from diffusion MRI
-measurements in a group of patients with Amyotrophic Lateral Sclerosis (ALS)
-and a group of matched controls [@Sarica2017].
 
-We start by loading the `tractable` library and `gratia`, as well as `ggplot2`,
-which we will use to interpret the fitted model.
+The data we will use here contains tract profiles from diffusion MRI measurements in a group of patients with Amyotrophic Lateral Sclerosis (ALS) and a group of matched controls [@Sarica2017].
+
+We start by loading the `tractable` library and `gratia`, as well as `ggplot2`, which we will use to interpret the fitted model.
 
 ```{r setup}
 library(tractable)
@@ -29,33 +27,31 @@ library(gratia)
 library(ggplot2)
 ```
 
-Next, we will use a function that is included in `tractable` to read this dataset
-directly into memory. Importantly, both the group ("ALS" or "CTRL") and the
+Next, we will use a function that is included in `tractable` to read this dataset directly into memory. 
+
+Importantly, both the group ("ALS" or "CTRL") and the
 subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
 ```{r}
-sarica <- tractable::read_afq_sarica()
-sarica$group <- factor(sarica$class)
-sarica$subjectID <- unclass(factor(sarica$subjectID))
+df_sarica <- read_afq_sarica(na_omit = TRUE) 
+df_sarica
 ```
 
-We fit models with different levels of flexibility, encoded in different values
-of `k`:
+We fit models with different levels of flexibility, encoded in different values of `k`:
 
 ```{r}
 k_values <- c(4, 8, 16, 32)
 
 models <- list()
 for (i in 1:length(k_values)){
-   models[[i]] <- tractable_single_bundle(
-    df_afq = sarica,
-    tract = "Right Corticospinal",
-    participant_id = "subjectID",
-    group_by = "group",
-    covariates = c("age", "group"),
-    dwi_metric = "fa",
-    k = k_values[i]
+   models[[i]] <- tractable_single_tract(
+    target     = "fa", 
+    df         = df_sarica, 
+    tract      = "Right Corticospinal",
+    regressors = c("age", "group"), 
+    node_k     = k_values[i], 
+    node_group = "group"
   )
 }
 ```
@@ -66,14 +62,17 @@ And we plot the smooths, divided by group for each one of these levels:
 plots <- list()
 for (i in 1:length(k_values)){
   plots[[i]] <- models[[i]] %>%
-    gratia::smooth_estimates() %>%
-    gratia::add_confint() %>%
-    ggplot2::ggplot(aes(x = nodeID, y = .estimate, ymin = .lower_ci, 
-                        ymax = .upper_ci, group = group, color = group, 
-                        fill = group)) +
-    ggplot2::geom_ribbon(color = NA, alpha = 0.2) + 
-    ggplot2::geom_line() +
-    ggplot2::labs(y = "FA", title = sprintf("k = %d", k_values[i]))
+    smooth_estimates() %>%
+    add_confint() %>%
+    dplyr::filter(.type != "Random effect") %>%
+    ggplot(aes(x = nodeID, y = .estimate, ymin = .lower_ci, 
+               ymax = .upper_ci, group = group, color = group, 
+               fill = group)) +
+    geom_ribbon(color = NA, alpha = 0.35) + 
+    geom_line(linewidth = 1) +
+    scale_y_continuous(name = "FA") +
+    ggtitle(sprintf("k = %d", k_values[1])) + 
+    theme_bw()
 }
 
 plots
