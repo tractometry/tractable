@@ -132,7 +132,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
     dplyr::filter(tractID == "Right Corticospinal")
 
   estimated_information <- estimate_smooth_basis(
-    formula = md ~ s(nodeID, bs = "ts", k = k = c(12, 20)), 
+    formula = md ~ s(nodeID, bs = "ts", k = c(12, 20)), 
     df      = df_sarica
   )
   expected_term <- "s(nodeID, bs = 'ts', k = 20)"
