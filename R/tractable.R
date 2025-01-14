@@ -1,16 +1,15 @@
 #' Analyze group differences in a single dMRI tract profile using GAMs
 #'
-#' @param df           Input data frame dataframe.
-#' @param tract        Tract name to subset from the dataframe.
-#' @param tract_col    The column name that encodes the tract information.
-#'                     Default: tractID
-#' @param ...          Further keyword arguments to be passed to 
-#'                     [tractable::fit_gam].
+#' @param df         Input data frame.
+#' @param tract      Tract name to subset from the dataframe.
+#' @param tract_col  The column name that encodes the tract information.
+#'                   Default: tractID
+#' @inheritDotParams fit_gam 
 #' 
 #' @return GAM model fit object.
 #' 
 #' @examples
-#' df_sarica <- read_afq_sarica()
+#' df_sarica <- read_afq_sarica(na_omit = TRUE)
 #'
 #' tractable_single_tract(
 #'   df         = df_sarica, 

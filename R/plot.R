@@ -7,20 +7,28 @@ cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
                 "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
+
+# Global Variables
+PALETTE_NAMES    <- c("cb", "cbb", "colorblind", "colorblind_black", 
+                      rownames(RColorBrewer::brewer.pal.info))
+RIBBON_FUNCTIONS <- c("mean_cl_boot", "mean_cl_normal", "mean_sdl", 
+                      "median_hilow")
+
+
 #' Retrieve tract name from abbreviation
 #'
-#' @param tract AFQ tract abbreviation
+#' @param tract_abbr AFQ tract abbreviation
 #'
 #' @return Formatted tract name
-#' @export
 #'
 #' @examples
-#' name <- tract_name("OR")
-#' name <- tract_name("CST_L")
-tract_name <- function(tract) {
+#' full_name <- tract_name("OR")
+#' full_name <- tract_name("CST_L")
+#' @export
+tract_name <- function(tract_abbr) {
   name <- switch(
-    tract,
-    "OR" = "Optic Radiation",
+    tract_abbr,
+    "OR"    = "Optic Radiation",
     "CST_R" = "Right Corticospinal",
     "CST_L" = "Left Corticospinal",
     "UNC_R" = "Right Uncinate",
@@ -35,19 +43,17 @@ tract_name <- function(tract) {
     "CGC_L" = "Left Cingulum Cingulate",
     "HCC_R" = "Right Cingulum Hippocampus",
     "HCC_L" = "Left Cingulum Hippocampus",
-    "FP" = "Callosum Forceps Major",
-    "FA" = "Callosum Forceps Minor",
+    "FP"    = "Callosum Forceps Major",
+    "FA"    = "Callosum Forceps Minor",
     "ILF_R" = "RightILF",
     "ILF_L" = "LeftILF",
     "SLF_R" = "RightSLF",
     "SLF_L" = "LeftSLF",
-    tract
+    tract_abbr
   )
   return(name)
 }
 
-
-utils::globalVariables(c("metric", "tracts", "nodeID", "value"))
 
 #' Plot GAM splines for each group
 #'
@@ -62,23 +68,26 @@ utils::globalVariables(c("metric", "tracts", "nodeID", "value"))
 #' @param group_by The grouping variable used to group nodeID smoothing terms
 #' @param output_dir directory in which to save plots
 #'
-#' @export
-#'
 #' @examples
 #' \dontrun{
 #' df_afq <- read.csv("/path/to/afq/output.csv")
-#' gam_fit <- fit_gam(df_afq,
-#'                    target = "dti_fa",
-#'                    covariates = list("group", "sex"),
-#'                    family = "gamma",
-#'                    k = 40)
-#' plot_gam_splines(gam_model = gam_fit,
-#'                  tract = "OR",
-#'                  df_tract = df_afq,
-#'                  dwi_metric = "dti_fa",
-#'                  covariates = c("group", "sex"),
-#'                  output_dir = ".")
-#' }
+#' 
+#' gam_fit <- fit_gam(
+#'   df_afq,
+#'   target = "dti_fa",
+#'   covariates = list("group", "sex"),
+#'   family = "gamma",
+#'   k = 40
+#' )
+#' 
+#' plot_gam_splines(
+#'   gam_model = gam_fit,
+#'   tract = "OR",
+#'   df_tract = df_afq,
+#'   dwi_metric = "dti_fa",
+#'   covariates = c("group", "sex"),
+#'   output_dir = ".")}
+#' @export
 plot_gam_splines <- function(
     gam_model,
     tract,
@@ -169,7 +178,7 @@ plot_gam_splines <- function(
 #'   Gavin Simpson's blog of December 15, 2016:
 #'   http://www.fromthebottomoftheheap.net/2016/12/15/simultaneous-interval-revisited/.
 #'   This interval is calculated from simulations based. Please specify a seed
-#'   (e.g., set.seed(123)) for reproducable results. Note: in contrast with
+#'   (e.g., set.seed(123)) for reproducible results. Note: in contrast with
 #'   Gavin Simpson's code, here the Bayesian posterior covariance matrix of
 #'   the parameters is uncertainty corrected (unconditional=TRUE) to reflect
 #'   the uncertainty on the estimation of smoothness parameters.
@@ -181,25 +190,31 @@ plot_gam_splines <- function(
 #' @examples
 #' \dontrun{
 #' df_afq <- read.csv("/path/to/afq/output.csv")
-#' gam_fit <- fit_gam(df_afq,
-#'                    target = "dti_fa",
-#'                    covariates = list("group", "sex"),
-#'                    family = "gamma",
-#'                    k = 40)
-#' df_diff = spline_diff(gam_model = gam_fit,
-#'                       tract = "OR",
-#'                       factor_a = "0",
-#'                       factor_b = "1",
-#'                       output_dir = ".")
-#' }
-spline_diff <- function(gam_model,
-                        tract,
-                        group_by = "group",
-                        factor_a,
-                        factor_b,
-                        save_output = TRUE,
-                        sim.ci = FALSE,
-                        output_dir) {
+#' 
+#' gam_fit <- fit_gam(
+#'   df_afq,
+#'   target = "dti_fa",
+#'   covariates = list("group", "sex"),
+#'   family = "gamma",
+#'   k = 40
+#' )
+#' 
+#' df_diff <- spline_diff(
+#'   gam_model = gam_fit,
+#'   tract = "OR",
+#'   factor_b = "1",
+#'   output_dir = "."
+#' )}
+spline_diff <- function(
+  gam_model,
+  tract,
+  group_by = "group",
+  factor_a,
+  factor_b,
+  save_output = TRUE,
+  sim.ci = FALSE,
+  output_dir = getwd()
+) {
   # determine bottom of plot
   comp <- list(c(factor_a, factor_b))
   names(comp) <- c(group_by)
@@ -281,168 +296,263 @@ spline_diff <- function(gam_model,
 }
 
 
-#' Plot tract profiles for each tract as a facet and each metric as a figure.
+#' Plot tract profiles
+#' 
+#' @description
+#' Create tract profile figures for each tract as a facet and for each `y`
+#' value as a figure.
 #'
-#' @param df            Data frame.
-#' @param metrics       Name(s) of the metrics to plot per figure, character vector.
-#'                      By default, will be all diffusion metrics in the 
-#'                      provided data frame.
-#' @param tracts        Name(s) of the tract tracts to plot per facet, character
-#'                      vector. By default, will be all tract tracts in the provided data
-#'                      frame.
-#' @param tract_col     Name of the column in the provided data frame with the
-#'                      tracts.
-#' @param group_col     Name of the column in the data frame to group by as a
-#'                      color, character. By default, no grouping variable is provided.
-#' @param line_func     Line function that provides the line positioning. See
-#'                      [ggplot2::stat_summary] for more information.
-#' @param linewidth     Line thickness of the tract profile line.
-#' @param ribbon_func   Ribbon function that provides the range for the ribbon.
-#'                      See [ggplot2::stat_summary] for more information.
-#' @param ribbon_alpha  Ribbon alpha level.
-#' @param n_groups      Number of groups to split a numeric grouping variable.
-#' @param pal_name      Grouping color palette name, character. 
-#'                      Default: Colorblind palette.
-#' @param output_dir    Output directory for the plot images.
-#'                      Default: Current working directory.
-#' @param ...           Keyword arguments to be passed to [ggplot2::ggsave].
+#' @param df              The input dataframe. 
+#' @param y               Column name(s) of the variables to plot on the y-axis.
+#' @param tracts          Name(s) of the tract tracts to plot per facet. 
+#'                        Default: NULL \cr \cr
+#'                        If NULL, will be all tracts in the data frame.
+#' @param tract_col       The column name that encodes the tract information.
+#'                        Default: tractID
+#' @param node_col        The column name that encodes tract node positions.
+#'                        Default: "nodeID".
+#' @param group_col       Column name that encodes group information. Will be 
+#'                        drawn by color. Default: NULL. 
+#'                        \itemize{
+#'                          \item  If `group_col` is a factor, will use unique
+#'                                 values as groups.
+#'                          \item  If `group_col` is a numeric, will use
+#'                                 [ggplot2::cut_interval] to create equal range
+#'                                 `n_groups` as groups.
+#'                        }
+#' @param n_groups        Number of groups to split a numeric grouping variable.
+#'                        Only used if `group_col` is numeric. 
+#'                        Default: NULL.
+#' @param group_pal       Grouping color palette name. Valid options include: 
+#'                        "cb" (colorblind), "cbb" (colorblind_black), and all 
+#'                        named [RColorBrewer] palettes.
+#'                        Default: "cb" (colorblind)
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID". 
+#' @param ribbon_func     Ribbon summarizing function that provides the y, ymin,
+#'                        and ymax for the ribbon. See `fun.data` argument from
+#'                        [ggplot2::stat_summary] for more information.
+#'                        Default: "mean_cl_boot"
+#' @param ribbon_alpha    Ribbon alpha level. Default: 0.25
+#' @param linewidth       Line thickness of the tract profile line. Default: 1.
+#' @param save_figure     Boolean flag. If TRUE, save tract profiles. If FALSE, 
+#'                        do not save tract profiles. Default: FALSE
+#' @param output_dir      Output directory for the figure image(s).
+#'                        Default: [getwd] (current working directory). 
+#' @param ...             Keyword arguments to be passed to [ggplot2::ggsave].
 #'                      
-#'
-#' @return List of plot handles corresponding to the specified metrics.
-#'
-#' @export
+#' @return Named list of plot handles corresponding to the specified y values.
+#' 
+#' @details
+#' If `save_figure` is TRUE, the naming convention is as follows:
+#' 
+#' - If `group_col`, "tract_by-(group_col)_param-(y)_profiles.png".
+#' - If `group_col == NULL`, "tract_param-(y)_profiles.png"
+#' 
 #'
 #' @examples
 #' \dontrun{
 #' df_sarica <- read_afq_sarica(na_omit = TRUE)
 #'
-#'plot_tract_profiles(
-#'   df_sarica,
-#'   metrics = c("fa"),
-#'   tracts = c("Left Corticospinal", "Right Corticospinal"),
-#'   group_col = "class",
-#'   figsize   = c(8, 6)
-#')
-#'
-#'plot_tract_profiles(
-#'   df_sarica,
-#'   metrics   = "fa"
+#' plot_handle <- plot_tract_profiles(
+#'   df        = df,
+#'   y         = c("fa", "md"),
 #'   tracts    = c("Left Corticospinal", "Right Corticospinal"),
-#'   group_col = "age",
-#'   n_groups  = 3,
-#'   pal_name  = "Spectral",
-#'   figsize   = c(8, 6)
-#')
-#'}
+#'   width     = 12, 
+#'   height    = 6,
+#'   units     = "in"
+#' )
+#' 
+#' plot_handle <- plot_tract_profiles(
+#'   df        = df,
+#'   y         = c("fa", "md"),
+#'   tracts    = c("Left Corticospinal", "Right Corticospinal"),
+#'   group_col = "group", 
+#'   width     = 12, 
+#'   height    = 6,
+#'   units     = "in"
+#' )
+#'
+#' plot_handle <- plot_tract_profiles(
+#'   df        = df,
+#'   y         = "fa",
+#'   tracts    = c("Left Corticospinal", "Right Corticospinal"),
+#'   group_col = "age", 
+#'   n_groups  = 5, 
+#'   group_pal = "Spectral", 
+#'   width     = 12, 
+#'   height    = 6,
+#'   units     = "in"
+#' )}
+#' @export
 plot_tract_profiles <- function (
     df,
-    y            = NULL,
-    tracts       = NULL,
-    tract_col    = "tractID",
-    group_col    = NULL,
-    line_func    = "mean",
-    linewidth    = 1,
-    ribbon_func  = "mean_cl_boot",
-    ribbon_alpha = 0.25,
-    n_groups     = 3,
-    pal_name     = "colorblind",
-    output_dir   = getwd(),
+    y, 
+    tracts          = NULL,
+    tract_col       = "tractID",
+    node_col        = "nodeID", 
+    group_col       = NULL,
+    n_groups        = NULL,
+    group_pal       = "cb",
+    participant_col = "subjectID", 
+    ribbon_func     = "mean_cl_boot",
+    ribbon_alpha    = 0.25,
+    linewidth       = 1,
+    save_figure     = TRUE, 
+    output_dir      = getwd(),
     ... 
 ) {
-  
-
-  # argument preparation
-  if (is.null(metrics)) {
-    metrics <- names(df) # extract all column names from given data frame
-    indx <- sapply(metrics, function(x) any(startsWith(x, c("csd", "dki", "dti", "fwdti"))))
-    metrics <- metrics[indx]
+  # argument input control
+  stopifnot("`df` must be a class data.frame or tibble" = 
+    any(class(df) %in% c("data.frame", "tbl_df")))
+  stopifnot("`y` must be a character" = is.character(y))
+  if (!is.null(tracts)) {
+    stopifnot("`tracts` must be a character" = is.character(tracts))
+  }
+  stopifnot("`tract_col` must be a character" = is.character(tract_col))
+  stopifnot("There can be only one `tract_col`" = length(tract_col) == 1)
+  stopifnot("`node_col` must be a character" = is.character(node_col))
+  stopifnot("There can be only one `node_col`" = length(node_col) == 1)
+  if (!is.null(group_col)) { # group_col is NOT null 
+    stopifnot("`group_col` must be a character" = is.character(group_col))
+    stopifnot("There can be only one `group_col`" = length(group_col) == 1)
+    stopifnot("`group_col` must be a column in the dataframe `df`" =
+      group_col %in% colnames(df))
+    if (is.numeric(df[[group_col]])) {
+      stopifnot("`n_groups` must be a integer" = round(n_groups) == n_groups)
+    }
+    rlang::arg_match(group_pal, values = PALETTE_NAMES)
+  }
+  stopifnot("`linewidth` must be a numeric" = is.numeric(linewidth))
+  rlang::arg_match(ribbon_func, values = RIBBON_FUNCTIONS) 
+  stopifnot("`ribbon_alpha` must be a numeric" = is.numeric(ribbon_alpha))
+  stopifnot("`save_figure` must be a logical." = is.logical(save_figure))
+  if (save_figure) {
+    stopifnot("`output_dir` must exist." = fs::is_dir(output_dir))
   }
 
+  # prepare tracts, if NULL all unique tracts
   if (is.null(tracts)) {
     tracts <- unique(df[[tract_col]])
+  } 
+   
+  # prepare grouping column all to factors
+  if (!is.null(group_col)) { # if not NULL
+    group_values  <- df[[group_col]] # grouping values
+    color_palette <- `_get_palette`(group_pal) # get group color palette
+    if (is.numeric(group_values)) {
+      df[[group_col]] <- ggplot2::cut_interval(group_values, n = n_groups)
+    } else if (is.character(group_values)) {
+      df[[group_col]] <- forcats::fct(group_values)
+    }  
   }
 
-  if (is.null(group_col)) {
-    group_col <- "_group"
-    df[[group_col]] <- "placeholder"
-  }
+  # prepare data frame for plotting
+  keep_cols <- c(participant_col, tract_col, node_col, group_col, y)
+  df_plot <- df[df[[tract_col]] %in% tracts, ] %>%
+    dplyr::select(tidyselect::all_of(keep_cols)) %>% 
+    dplyr::rename(
+      x = tidyselect::all_of(node_col), 
+      tracts = tidyselect::all_of(tract_col)
+    )
 
-  ribbon_func <- switch(
-    ribbon_func,
-    "mean_cl_boot"   = ggplot2::mean_cl_boot,
-    "mean_cl_normal" = ggplot2::mean_cl_normal,
-    "mean_sdl"       = ggplot2::mean_sdl,
-    "median_hilow"   = ggplot2::median_hilow
-  )
-
-  # prepare data.frame for plotting
-  plot_df <- df %>%
-    tidyr::pivot_longer(cols = tidyselect::all_of(metrics), names_to = "metric") %>%
-    dplyr::rename(tracts = tidyselect::all_of(tracts_col)) %>%
-    dplyr::filter(tracts %in% tracts, metric %in% metrics)
-
-  # factorized grouping variable, split into groups if numeric
-  if (is.numeric(plot_df[[group_col]])) {
-    plot_df[[group_col]] <- Hmisc::cut2(plot_df[[group_col]], g = n_groups)
-  } else if (is.character(plot_df[[group_col]])) {
-    plot_df[[group_col]] <- forcats::fct(plot_df[[group_col]])
-  }
-
-  # declare color palette for plotting
-  if (pal_name == "colorblind") {
-    color_palette <- cbPalette
-  } else if (pal_name == "colorblindblack") {
-    color_palette = cbbPalette
-  } else {
-    n <- RColorBrewer::brewer.pal.info[pal_name, "maxcolors"]
-    color_palette <- RColorBrewer::brewer.pal(n, pal_name)
-  }
+  # prepare summarizing function 
+  ribbon_func <- `_get_ribbon_func`(ribbon_func) # get ribbon function
 
   plot_handles <- list() # initialize
-  for (curr_metric in metrics) {
-    # create current metric figure handle
-    plot_handle <- plot_df %>%
-      dplyr::filter(metric == curr_metric) %>%
-      ggplot2::ggplot(ggplot2::aes_string(x = "nodeID",
-                                          y = "value",
-                                          group = group_col,
-                                          color = group_col,
-                                          fill = group_col)) +
-                      ggplot2::stat_summary(
-                          color = NA,
-                          geom = "ribbon",
-                          fun.data = ribbon_func,
-                          alpha = ribbon_alpha) +
-                      ggplot2::stat_summary(
-                          geom = "line",
-                          fun = line_func,
-                          linewidth = linewidth) +
-                      ggplot2::scale_x_continuous(name = "Node #") +
-                      ggplot2::scale_y_continuous(name = toupper(curr_metric)) +
-                      ggplot2::scale_color_manual(values = color_palette) +
-                      ggplot2::scale_fill_manual(values = color_palette) +
-                      ggplot2::facet_wrap(~ tracts) +
-                      ggplot2::theme_bw()
+  for (y_curr in y) { # for each y-axis variable
+    if (is.null(group_col)) {
+      # prepare current y-axis values to plot
+      df_curr <- df_plot %>% 
+        dplyr::rename(y = tidyselect::all_of(y_curr)) %>% 
+        dplyr::group_by(x, tracts) %>% 
+        dplyr::summarize(ribbon_func(y), .groups = "drop")
 
-    # remove legend if no group
-    # if (group_col == "_group") {
-    #   plot_handle <- plot_handle + ggplot::theme(legend.position = "none")
-    # }
+      # create current metric figure handle
+      plot_handle <- df_curr %>% 
+        ggplot2::ggplot(ggplot2::aes(x = x, y = y, ymin = ymin, ymax = ymax)) +
+        ggplot2::geom_ribbon(color = NA, alpha = ribbon_alpha) +
+        ggplot2::geom_line(linewidth = linewidth) + 
+        ggplot2::scale_x_continuous(name = "Node Position") + 
+        ggplot2::scale_y_continuous(name = stringr::str_to_upper(y_curr)) + 
+        ggplot2::facet_wrap(~ tracts) + 
+        ggplot2::theme_bw()
 
-    # save tract profile figure
-    plot_fname <- paste0("tract-profile_by-", group_col, "_",
-                         stringr::str_replace_all(curr_metric, "_", "-"), ".png")
-    ggplot2::ggsave(
-      filename = file.path(output_dir, plot_fname),
-      plot     = plot_handle,
-      ...      = ...
-    )
+      # prepare the saved figure file name
+      output_fname <- sprintf("tracts_param-%s_profile.png", y_curr)
+    } else {
+      # prepare current y-axis values to plot
+      df_curr <- df_plot %>% 
+        dplyr::rename(
+          y = tidyselect::all_of(y_curr), 
+          group = tidyselect::all_of(group_col)
+        ) %>% 
+        dplyr::group_by(x, group, tracts) %>% 
+        dplyr::summarize(ribbon_func(y), .groups = "drop")
+  
+      # create current metric figure handle
+      plot_handle <- df_curr %>% 
+        ggplot2::ggplot(ggplot2::aes(x = x, y = y, ymin = ymin, ymax = ymax, 
+          group = group, color = group, fill = group)) +
+        ggplot2::geom_ribbon(color = NA, alpha = ribbon_alpha) +
+        ggplot2::geom_line(linewidth = linewidth) + 
+        ggplot2::scale_x_continuous(name = "Node Position") + 
+        ggplot2::scale_y_continuous(name = stringr::str_to_upper(y_curr)) + 
+        ggplot2::scale_color_manual(name = group_col, values = color_palette) +
+        ggplot2::scale_fill_manual(name = group_col, values = color_palette) +
+        ggplot2::facet_wrap(~ tracts) + 
+        ggplot2::theme_bw()
+  
+      # prepare the saved figure file name
+      output_fname <- sprintf("tracts_by-%s_param-%s_profile.png", group_col, y_curr)
+    }
+      
+    # save the figure 
+    if (save_figure) {
+      ggplot2::ggsave(
+        filename = file.path(output_dir, output_fname),
+        plot     = plot_handle,
+        ...      = ...
+      )  
+    }
 
     # collect plot handles by metric
     plot_handles <- c(plot_handles, list(plot_handle))
   }
 
-  # assign names to plot handles and return list
-  names(plot_handles) <- metrics
+  # assign names to plot handles and return
+  names(plot_handles) <- y
+
   return(plot_handles)
+}
+
+
+# Helper Functions that are NOT exported
+`_get_ribbon_func` <- function(func_name) {
+  rlang::arg_match(func_name, values = RIBBON_FUNCTIONS)
+  ribbon_func <- switch(
+    func_name,
+    "mean_cl_boot"   = ggplot2::mean_cl_boot,
+    "mean_cl_normal" = ggplot2::mean_cl_normal,
+    "mean_sdl"       = ggplot2::mean_sdl,
+    "median_hilow"   = ggplot2::median_hilow
+  )
+  return(ribbon_func)
+}
+
+
+`_get_palette` <- function(palette_name) {
+  rlang::arg_match(palette_name, values = PALETTE_NAMES)
+  color_palette <- switch(
+    palette_name, 
+    "cb"               = cbPalette, 
+    "cbb"              = cbbPalette, 
+    "colorblind"       = cbPalette, 
+    "colorblind_black" = cbbPalette, 
+    { # default RColorBrewer palettes
+      n <- RColorBrewer::brewer.pal.info[palette_name, "maxcolors"]
+      RColorBrewer::brewer.pal(n, palette_name)
+    }
+  )
+  return(color_palette)
 }

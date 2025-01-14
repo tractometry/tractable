@@ -71,7 +71,7 @@ test_that("estimate_distribution runs as expected", {
 
 
 test_that("estimate_smooth_basis.default runs as expected", {
-  df_sarica <- read_afq_sarica(na_omit = TRUE) %>% 
+  df_sarica <- tractable::read_afq_sarica(na_omit = TRUE) %>% 
     dplyr::filter(tractID == "Right Corticospinal")
 
   estimated_information <- estimate_smooth_basis(
@@ -129,7 +129,7 @@ test_that("estimate_smooth_basis.default runs as expected", {
 
 
 test_that("estimate_smooth_basis.formula runs as expected", {
-  df_sarica <- read_afq_sarica(na_omit = TRUE) %>% 
+  df_sarica <- tractable::read_afq_sarica(na_omit = TRUE) %>% 
     dplyr::filter(tractID == "Right Corticospinal")
 
   estimated_information <- estimate_smooth_basis(
@@ -181,7 +181,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
 
 
 test_that("fit_gam.default runs as expected", {
-  df_sarica <- read_afq_sarica(na_omit = TRUE) %>% 
+  df_sarica <- tractable::read_afq_sarica(na_omit = TRUE) %>% 
     dplyr::filter(tractID == "Right Corticospinal")
 
   expect_no_error({
@@ -238,7 +238,7 @@ test_that("fit_gam.default runs as expected", {
 
 
 test_that("fit_gam.formula runs as expected", {
-  df_sarica <- read_afq_sarica(na_omit = TRUE) %>% 
+  df_sarica <- tractable::read_afq_sarica(na_omit = TRUE) %>% 
     dplyr::filter(tractID == "Right Corticospinal")
 
   expect_no_error({
@@ -297,7 +297,7 @@ test_that("fit_gam.formula runs as expected", {
 
 
 test_that("save_gam runs as expected", {
-  df_sarica <- read_afq_sarica(na_omit = TRUE) %>% 
+  df_sarica <- tractable::read_afq_sarica(na_omit = TRUE) %>% 
     dplyr::filter(tractID == "Right Corticospinal")
 
   model_fit <- fit_gam(

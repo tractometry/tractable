@@ -1,8 +1,8 @@
 #' Create a merged AFQ and phenotype dataframe
 #'
 #' @param nodes_file    Path to a nodes file.
-#' @param pheno_file    Path to a phenotypic file. If pheno_file = NULL 
-#'                      returns an "unsupervised" AFQ dataset.
+#' @param pheno_file    Path to a phenotypic file. If pheno_file = NULL returns
+#'                      an "unsupervised" AFQ dataset (no phenotypic data). 
 #' @param by            Column used for merging the nodes and phenotypic files.
 #'                      Default: "subjectID"
 #'                      \cr \cr
@@ -12,13 +12,14 @@
 #' @param tract_col     The column name that encodes tract names.
 #'                      Default: "tractID"
 #' @param node_col      The column name that encodes tract node positions.
+#'                      Default: "nodeID"
 #' @param other_cols    Other column names to be included in the final
 #'                      data frame. Default: NULL
 #' @param na_omit       A logical indicating whether rows with NA values should 
 #'                      be removed from the data frame before returning.
 #'                      Default: FALSE
 #' @param ...           Further keyword arguments to be passed to the file 
-#'                      reading function ([readr::read_csv], [readr::read_tsv])
+#'                      reading function: [readr::read_csv] or [readr::read_tsv].
 #' 
 #' @return An AFQ dataset.
 #' 
@@ -67,7 +68,7 @@ read_afq_files <- function(
     df_merged <- dplyr::full_join(x = df_nodes, y = df_pheno, by = by)
   } else {
     # place index first in "merged" dataframe (nodes dataset)
-    df_merged <- df_nodes %>% dplyr::relocate(all_of(by), 1)
+    df_merged <- df_nodes %>% dplyr::relocate(tidyselect::all_of(by), 1)
   }
 
   # subset columns by requested values
@@ -90,7 +91,7 @@ read_afq_files <- function(
 #'                   removed from the data frame before returning.
 #'                   Default: FALSE
 #' @param ...        Further keyword arguments to be passed to the file reading
-#'                   function ([readr::read_csv], [readr::read_tsv]).
+#'                   function: [readr::read_csv] or [readr::read_tsv].
 #'
 #' @return A merged dataframe with data from Sarica et al.
 #'
@@ -128,7 +129,7 @@ read_afq_sarica  <- function(na_omit = FALSE, ...) {
 #'                   removed from the data frame before returning.
 #'                   Default: FALSE
 #' @param ...        Further keyword arguments to be passed to the file reading
-#'                   function ([readr::read_csv], [readr::read_tsv]).
+#'                   function: [readr::read_csv] or [readr::read_tsv].
 #'
 #' @return A merged dataframe with data from Yeatman et al.
 #' 
@@ -167,14 +168,13 @@ read_afq_weston_havens <- function(na_omit = FALSE, ...) {
 #'                   removed from the data frame before returning.
 #'                   Default: FALSE
 #' @param ...        Further keyword arguments to be passed to the file reading
-#'                   function ([readr::read_csv], [readr::read_tsv]).
+#'                   function: [readr::read_csv] or [readr::read_tsv].
 #'
 #' @return A merged dataframe with data from HBN
 #'
 #' @examples
 #' \dontrun{ 
-#' df_hbn <- read_afq_hbn()
-#' }
+#' df_hbn <- read_afq_hbn()}
 #' @export
 read_afq_hbn <- function(truncate = FALSE, na_omit = FALSE, ...) {
   # define node and pheno S3 URLs
@@ -269,6 +269,6 @@ read_afq_hbn <- function(truncate = FALSE, na_omit = FALSE, ...) {
   } else { # read from local or URL
     df <- file_func(file, show_col_types = FALSE, ... = ...)
   }
-
+  
   return(df)
 }

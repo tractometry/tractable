@@ -42,20 +42,28 @@ longitudinal fasciculus (SLF), which are identified in the "tractID" column of
 this dataset.
 
 ```{r plot_profiles}
-plot_tract_profiles(
-  df         = df_sarica,
-  group_col  = "group",
-  n_groups   = 2,
-  metrics    = c("fa", "md"),
-  tracts     = list("Right Corticospinal", "Right SLF"),
-  tracts_col = "tractID"
+plot_handles <- plot_tract_profiles(
+  df          = df_sarica,
+  y           = c("fa", "md"),
+  tracts      = c("Right Corticospinal", "Right SLF"),
+  group_col   = "group",
+  save_figure = FALSE
 )
 ```
+
+```{r plot_fa, fig.width = 8, fig.height = 6}
+plot_handles$fa
+```
+
+```{r plot_md, fig.width = 8, fig.height = 6}
+plot_handles$md
+```
+
 
 We can already see that ALS has a profound effect on the tract profiles of the
 CST, but does not affect SLF as much. We will use GAMs in order to quantify
 this in statistical terms. We start by fitting a GAM model to the data from the
-CST. Using the `tractable_single_bundle` function, we select the Right CST data,
+CST. Using the `tractable_single_tract` function, we select the Right CST data,
 and focus here only on FA. We use "group" and "age" as relevant covariates.
 Comparing group as a main effect, that will also be used to fit separate
 smooth functions for each category of subjects. The `mgcv` GAM functions
@@ -84,8 +92,8 @@ In addition, we see that there is a statistically significant effect of group
 (p = `r cst_summary$p.table["age", "Pr(>|t|)"]`).
 
 Running the same analysis on the data from SLF, we see that there is no
-significant difference between the groups in this bundle, indicating that the
-effect observed in CST is rather specific to this bundle.
+significant difference between the groups in this tract, indicating that the
+effect observed in CST is rather specific to this tract.
 
 ```{r slf_model_fit}
 slf_fit <- tractable_single_tract(

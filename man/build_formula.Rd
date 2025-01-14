@@ -25,8 +25,8 @@ smoothing terms. Default: NULL.}
 Default: "nodeID".}
 
 \item{node_k}{The basis dimensions used to represent the node
-smoother. If \code{node_group}, the basis value is
-applied to the group as well. Default: NULL}
+smoother. If \code{node_group}, the basis value is applied
+to the group as well. Default: NULL}
 
 \item{node_group}{The column name to group the tract node smooth by.
 Default: NULL.}
@@ -42,6 +42,16 @@ Function used to build a generic GAM formula string from the given arguments.
 The function automatically includes a tract node smoothing term (with or
 without a grouping term) and a participant random effects (random intercept).
 Any regressor terms are included as additive effects.
+}
+\details{
+The formula is build under the logic:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{target ~ regressors 
+  + s(node_col, <by = node_group>, <k = node_k>)
+  + s(participant_col, bs = "re")
+}\if{html}{\out{</div>}}
+
+with \verb{<variables>} indicating optional components.
 }
 \examples{
 formula <- build_formula(target = "dti_fa", node_k = 40)

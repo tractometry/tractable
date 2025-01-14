@@ -1,5 +1,5 @@
 test_that("tractable_single_bundle run as expected", {
-  df_sarica <- read_afq_sarica(na_omit = TRUE)
+  df_sarica <- tractable::read_afq_sarica(na_omit = TRUE)
 
   expect_no_error(
     model_fit <- tractable_single_tract(

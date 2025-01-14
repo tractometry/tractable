@@ -12,7 +12,7 @@ removed from the data frame before returning.
 Default: FALSE}
 
 \item{...}{Further keyword arguments to be passed to the file reading
-function (\link[readr:read_delim]{readr::read_csv}, \link[readr:read_delim]{readr::read_tsv}).}
+function: \link[readr:read_delim]{readr::read_csv} or \link[readr:read_delim]{readr::read_tsv}.}
 }
 \value{
 A merged dataframe with data from Sarica et al.

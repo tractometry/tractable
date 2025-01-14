@@ -1,6 +1,6 @@
 Package: tractable
 Title: Analyzing diffusion MRI tract profiles
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     c(person(given = "Adam",
            family = "Richie-Halford",
@@ -49,24 +49,27 @@ Imports:
     dplyr,
     fitdistrplus,
     forcats,
+    fs,
     ggplot2,
-    Hmisc,
+    gratia (>= 0.9.2),
     itsadug,
     magrittr,
     mgcv,
-    progress,
     RColorBrewer,
+    readr, 
     rlang,
+    stats,
     stringr,
+    tibble,
     tidyr,
     tidyselect
 Suggests:
-    covr,
+    Hmisc,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    gratia (>= 0.9.2),
-    patchwork
+    patchwork,
+    progress
 Config/testthat/edition: 3
 URL: https://github.com/tractometry/tractable
 BugReports: https://github.com/tractometry/tractable/issues

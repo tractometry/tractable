@@ -6,8 +6,6 @@
 \alias{fit_gam.formula}
 \title{Fit a GAM model.}
 \usage{
-fit_gam(...)
-
 \method{fit_gam}{default}(
   target,
   df,
@@ -37,64 +35,116 @@ fit_gam(...)
 \arguments{
 \item{target}{The column name that encodes the metric to model.}
 
-\item{df}{The data frame contains GAM metrics.}
+\item{formula}{Explicit formula to use for the GAM model.}
+
+\item{df}{The data frame that contains the GAM metrics.}
 
 \item{regressors}{Column name or list of column names to use as
-regressors, not including nodes smoothing terms and
-the participant random effect. This list can also
-include smoothing terms. Default: NULL.}
+regressors. This list can also include smoothing terms.
+Default: NULL.}
 
 \item{node_col}{The column name that encodes tract node positions.
 Default: "nodeID".}
 
 \item{node_k}{The basis dimensions used to represent the node
-smoother. If \code{node_group}, the basis value is applied
-to the group as well. Default: 'auto'.}
+smoother. See details
+to the group as well. Default: NULL}
 
 \item{node_group}{The column name to group the tract node smooth by
 (i.e., \code{s(node_col, by = node_group, k = node_k)}).}
 
-\item{formula}{Explicit formula to use for the GAM.}
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
+
+\item{autocor}{Logical indicating if AR1 autocorrelation should be
+corrected for  in the GAM model. Default: TRUE}
+
+\item{family}{Name or family function of the distribution to use for
+modeling the GAM dependent variable.
+\itemize{
+\item If name, the possible values: ("auto", "beta",
+"gamma", "gaussian").
+\item If "auto", will automatically determine the
+distribution of best fit between
+\link[mgcv:Beta]{mgcv::betar} ("beta"), \link[stats:family]{stats::Gamma}
+("gamma"), or \link[stats:family]{stats::gaussian} ("gaussian").
+\item If function, see \link[stats:family]{family}
+or \link[mgcv:family.mgcv]{family.mgcv} for
+more \code{family} or \code{extended.family}
+class functions.
+}}
+
+\item{method}{GAM fitting method passed to \link[mgcv:bam]{bam}.
+Default: "fREML"}
+
+\item{discrete}{With \code{method} is "fREML" it is possible to
+discretize covariates for storage and efficiency
+reasons. See \link[mgcv:bam]{bam} for more information.
+Default: TRUE}
+
+\item{...}{Further keyword arguments to be passed to
+\link[=estimate_basis_smooth]{estimate_basis_smooth}
+and \link[mgcv:bam]{bam}}
 }
 \value{
-Fit GAM model
+Fit GAM model object.
 }
 \description{
 Function used to fit a GAM formula from an explicit formula or builds a
 formula from the given arguments.
 }
 \details{
-This function has a series of steps:
+\subsection{GAM model formula}{
+
+If calling \code{fit_gam} with the default method, the GAM model formula will be
+built with \link[=build_formula]{build_formula}.
+
+The formula is built following the logic:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{target ~ <regressors>  
+  + s(node_col, <by = node_group>, k = <node_k or estimated>)
+  + s(participant_col, bs = "re")
+}\if{html}{\out{</div>}}
+
+with \verb{<variables>} indicating optional components.
+}
+
+\subsection{Automated model fitting procedure}{
+
+This function has a series of (optional) automatic steps in the GAM model
+fitting procedure:
 \enumerate{
-\item If family == "auto", choose the distribution (either 'beta', 'gamma',
-or 'norm') that has the lowest AIC when fitting to the GAM dependent
-variable data using \code{\link[fitdistrplus:fitdist]{fitdistrplus::fitdist()}}.
-\item If node_k == "auto", build an initial GAM model with k = 2 and
-continue to double the k value until gam.check shows that k is
-large enough.
-\item Fit a GAM model according to the formula given or build a formula
-that follow the below pattern:
-\cr \cr
-target ~ regressor1 (+ regressor2 + ...) +
-s(node_col, by = node_group, k = node_k) +
-s(participant_col, bs = "re")
-\cr
-\item Optionally, save the output of gam.check and summary to files.
+\item If \code{family == "auto"}, choose the distribution (either "beta", "gamma", or
+"gaussian") that has the lowest AIC when fitting to the GAM dependent
+variable data. Implemented with
+\link[=estimate_distribution]{estimate_distribution}.
+\item If \code{node_k == "auto"}, estimates the best \code{k} for the node smoother. This
+is implemented with \link[=estimate_distribution]{estimate_smooth_basis}.
+\item If \code{autocor == TRUE}, estimates the best AR1 autocorrelation lag and
+applies the lag to the GAM model. Implemented with \link[itsadug:start_value_rho]{itsadug::start_value_rho}.
+}
 }
 }
 \examples{
 \dontrun{
-df_afq <- read.csv("/path/to/afq/output.csv")
+df_tract <- read_afq_sarica(na_omit = TRUE) \%>\% 
+  filter(tractID == "Right Corticospinal")
 
-df_tract <- df_afq \%>\% 
-  filter(tractID == "CST_L")
-
-gam_fit <- fit_gam(
-  target = "dti_fa", 
-  regressors = c("sex", "group"), 
-  df = df_tract, 
-  family = "gamma", 
-  node_k = "auto"
+# default method specification
+model_fit <- fit_gam(
+  target     = "fa", 
+  df         = df_tract,
+  regressors = c("age", "group"), 
+  node_group = "group", 
+  node_k     = "auto",
+  family     = "auto" 
 )
-}
+
+# formula method specification
+model_fit <- fit_gam(
+  formula = fa ~ age + group 
+    + s(nodeID, by = "group", bs = "fs") 
+    + s(subjectID, bs = "re"), 
+  df = df_tract
+)}
 }

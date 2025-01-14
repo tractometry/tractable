@@ -47,7 +47,7 @@ models <- list()
 for (i in 1:length(k_values)){
    models[[i]] <- tractable_single_tract(
     target     = "fa", 
-    df         = df_cst, 
+    df         = df_sarica, 
     tract      = "Right Corticospinal",
     regressors = c("age", "group"), 
     node_k     = k_values[i], 
@@ -64,7 +64,7 @@ for (i in 1:length(k_values)){
   plots[[i]] <- models[[i]] %>%
     smooth_estimates() %>%
     add_confint() %>%
-    filter(.type != "Random effect") %>%
+    dplyr::filter(.type != "Random effect") %>%
     ggplot(aes(x = nodeID, y = .estimate, ymin = .lower_ci, 
                ymax = .upper_ci, group = group, color = group, 
                fill = group)) +

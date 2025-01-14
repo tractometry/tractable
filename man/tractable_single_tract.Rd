@@ -7,15 +7,18 @@
 tractable_single_tract(df, tract, tract_col = "tractID", ...)
 }
 \arguments{
-\item{df}{Input data frame dataframe.}
+\item{df}{Input data frame.}
 
 \item{tract}{Tract name to subset from the dataframe.}
 
 \item{tract_col}{The column name that encodes the tract information.
 Default: tractID}
 
-\item{...}{Further keyword arguments to be passed to
-\link{fit_gam}.}
+\item{...}{
+  Arguments passed on to \code{\link[=fit_gam]{fit_gam}}
+  \describe{
+    \item{\code{}}{}
+  }}
 }
 \value{
 GAM model fit object.
@@ -24,7 +27,7 @@ GAM model fit object.
 Analyze group differences in a single dMRI tract profile using GAMs
 }
 \examples{
-df_sarica <- read_afq_sarica()
+df_sarica <- read_afq_sarica(na_omit = TRUE)
 
 tractable_single_tract(
   df         = df_sarica, 

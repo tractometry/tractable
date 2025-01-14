@@ -40,16 +40,20 @@ Plot GAM splines for each group
 \examples{
 \dontrun{
 df_afq <- read.csv("/path/to/afq/output.csv")
-gam_fit <- fit_gam(df_afq,
-                   target = "dti_fa",
-                   covariates = list("group", "sex"),
-                   family = "gamma",
-                   k = 40)
-plot_gam_splines(gam_model = gam_fit,
-                 tract = "OR",
-                 df_tract = df_afq,
-                 dwi_metric = "dti_fa",
-                 covariates = c("group", "sex"),
-                 output_dir = ".")
-}
+
+gam_fit <- fit_gam(
+  df_afq,
+  target = "dti_fa",
+  covariates = list("group", "sex"),
+  family = "gamma",
+  k = 40
+)
+
+plot_gam_splines(
+  gam_model = gam_fit,
+  tract = "OR",
+  df_tract = df_afq,
+  dwi_metric = "dti_fa",
+  covariates = c("group", "sex"),
+  output_dir = ".")}
 }

@@ -2,87 +2,126 @@
 % Please edit documentation in R/plot.R
 \name{plot_tract_profiles}
 \alias{plot_tract_profiles}
-\title{Plot tract profiles for each tract as a facet and each metric as a figure.}
+\title{Plot tract profiles}
 \usage{
 plot_tract_profiles(
   df,
-  y = NULL,
+  y,
   tracts = NULL,
   tract_col = "tractID",
+  node_col = "nodeID",
   group_col = NULL,
-  line_func = "mean",
-  linewidth = 1,
+  n_groups = NULL,
+  group_pal = "cb",
+  participant_col = "subjectID",
   ribbon_func = "mean_cl_boot",
   ribbon_alpha = 0.25,
-  n_groups = 3,
-  pal_name = "colorblind",
+  linewidth = 1,
+  save_figure = TRUE,
   output_dir = getwd(),
   ...
 )
 }
 \arguments{
-\item{df}{Data frame.}
+\item{df}{The input dataframe.}
 
-\item{tracts}{Name(s) of the tract tracts to plot per facet, character
-vector. By default, will be all tract tracts in the provided data
-frame.}
+\item{y}{Column name(s) of the variables to plot on the y-axis.}
 
-\item{tract_col}{Name of the column in the provided data frame with the
-tracts.}
+\item{tracts}{Name(s) of the tract tracts to plot per facet.
+Default: NULL \cr \cr
+If NULL, will be all tracts in the data frame.}
 
-\item{group_col}{Name of the column in the data frame to group by as a
-color, character. By default, no grouping variable is provided.}
+\item{tract_col}{The column name that encodes the tract information.
+Default: tractID}
 
-\item{line_func}{Line function that provides the line positioning. See
-\link[ggplot2:stat_summary]{ggplot2::stat_summary} for more information.}
+\item{node_col}{The column name that encodes tract node positions.
+Default: "nodeID".}
 
-\item{linewidth}{Line thickness of the tract profile line.}
+\item{group_col}{Column name that encodes group information. Will be
+drawn by color. Default: NULL.
+\itemize{
+\item  If \code{group_col} is a factor, will use unique
+values as groups.
+\item  If \code{group_col} is a numeric, will use
+\link[ggplot2:cut_interval]{ggplot2::cut_interval} to create equal range
+\code{n_groups} as groups.
+}}
 
-\item{ribbon_func}{Ribbon function that provides the range for the ribbon.
-See \link[ggplot2:stat_summary]{ggplot2::stat_summary} for more information.}
+\item{n_groups}{Number of groups to split a numeric grouping variable.
+Only used if \code{group_col} is numeric.
+Default: NULL.}
 
-\item{ribbon_alpha}{Ribbon alpha level.}
+\item{group_pal}{Grouping color palette name. Valid options include:
+"cb" (colorblind), "cbb" (colorblind_black), and all
+named \link{RColorBrewer} palettes.
+Default: "cb" (colorblind)}
 
-\item{n_groups}{Number of groups to split a numeric grouping variable.}
+\item{participant_col}{The column name that encodes participant ID.
+Default: "subjectID".}
 
-\item{pal_name}{Grouping color palette name, character.
-Default: Colorblind palette.}
+\item{ribbon_func}{Ribbon summarizing function that provides the y, ymin,
+and ymax for the ribbon. See \code{fun.data} argument from
+\link[ggplot2:stat_summary]{ggplot2::stat_summary} for more information.
+Default: "mean_cl_boot"}
 
-\item{output_dir}{Output directory for the plot images.
-Default: Current working directory.}
+\item{ribbon_alpha}{Ribbon alpha level. Default: 0.25}
+
+\item{linewidth}{Line thickness of the tract profile line. Default: 1.}
+
+\item{save_figure}{Boolean flag. If TRUE, save tract profiles. If FALSE,
+do not save tract profiles. Default: FALSE}
+
+\item{output_dir}{Output directory for the figure image(s).
+Default: \link{getwd} (current working directory).}
 
 \item{...}{Keyword arguments to be passed to \link[ggplot2:ggsave]{ggplot2::ggsave}.}
-
-\item{metrics}{Name(s) of the metrics to plot per figure, character vector.
-By default, will be all diffusion metrics in the
-provided data frame.}
 }
 \value{
-List of plot handles corresponding to the specified metrics.
+Named list of plot handles corresponding to the specified y values.
 }
 \description{
-Plot tract profiles for each tract as a facet and each metric as a figure.
+Create tract profile figures for each tract as a facet and for each \code{y}
+value as a figure.
+}
+\details{
+If \code{save_figure} is TRUE, the naming convention is as follows:
+\itemize{
+\item If \code{group_col}, "tract_by-(group_col)_param-(y)_profiles.png".
+\item If \code{group_col == NULL}, "tract_param-(y)_profiles.png"
+}
 }
 \examples{
 \dontrun{
 df_sarica <- read_afq_sarica(na_omit = TRUE)
 
-plot_tract_profiles(
-  df_sarica,
-  metrics = c("fa"),
-  tracts = c("Left Corticospinal", "Right Corticospinal"),
-  group_col = "class",
-  figsize   = c(8, 6)
+plot_handle <- plot_tract_profiles(
+  df        = df,
+  y         = c("fa", "md"),
+  tracts    = c("Left Corticospinal", "Right Corticospinal"),
+  width     = 12, 
+  height    = 6,
+  units     = "in"
 )
 
-plot_tract_profiles(
-  df_sarica,
-  metrics   = "fa"
+plot_handle <- plot_tract_profiles(
+  df        = df,
+  y         = c("fa", "md"),
   tracts    = c("Left Corticospinal", "Right Corticospinal"),
-  group_col = "age",
-  n_groups  = 3,
-  pal_name  = "Spectral",
-  figsize   = c(8, 6)
+  group_col = "group", 
+  width     = 12, 
+  height    = 6,
+  units     = "in"
 )
-}
+
+plot_handle <- plot_tract_profiles(
+  df        = df,
+  y         = "fa",
+  tracts    = c("Left Corticospinal", "Right Corticospinal"),
+  group_col = "age", 
+  n_groups  = 5, 
+  group_pal = "Spectral", 
+  width     = 12, 
+  height    = 6,
+  units     = "in"
+)}
 }

@@ -6,8 +6,6 @@
 \alias{estimate_smooth_basis.formula}
 \title{Estimate smoothing basis dimensions for GAM smoothers.}
 \usage{
-estimate_smooth_basis(...)
-
 \method{estimate_smooth_basis}{default}(
   target,
   smooth_terms,
@@ -37,13 +35,13 @@ estimate_smooth_basis(...)
 )
 }
 \arguments{
-\item{...}{Further keyword arguments to be passed to
-\link[mgcv:bam]{bam}}
-
 \item{target}{The column name that encodes the metric to model.}
 
 \item{smooth_terms}{List of smooth terms to estimate smoothing basis. See
 details for examples of smoothing terms.}
+
+\item{formula}{GAM formula. Can contain mulitple smooth terms to
+estimate. See details for more information.}
 
 \item{df}{The data frame that contains the GAM metrics.}
 
@@ -81,6 +79,9 @@ Default: "fREML"}
 discretize covariates for storage and efficiency
 reasons. See \link[mgcv:bam]{bam} for more information.
 Default: TRUE}
+
+\item{...}{Further keyword arguments to be passed to
+\link[mgcv:bam]{bam}}
 }
 \value{
 A list containing two items: \tabular{llll}{
@@ -132,15 +133,31 @@ estimated.
 \subsection{Stopping criterion}{
 
 The estimation process has two stopping criterion:
-
 \itemize{
-\item The procedure will stop once the k-index value exceeds
-\code{kindex_thr} \strong{AND} the p-value exceeds the
-\code{pvalue_thr}. \cr
-\item If the thresholds are not met, the procedure will stop once it runs
-through all of the \code{k_values}. \cr
+\item The procedure will stop once the k-index value exceeds \code{kindex_thr}
+\strong{AND} the p-value exceeds the \code{pvalue_thr}.
+\item If the thresholds are not met, the procedure will stop once it runs through
+all of the \code{k_values}, and returns the last term.
 }
 }
+}
+\examples{
+\dontrun{
+df_sarica <- read_afq_sarica(na_omit = TRUE)
+
+# default specification method
+estimate_smooth_basis(
+  target       = "fa", 
+  smooth_terms = c("s(nodeID)", "s(nodeID, by = group, bs = 'fs')"), 
+  df           = df_sarica, 
+  regressors   = c("age", "group"), 
+)
+
+# formula specification method
+estimate_smooth_basis(
+  formula = fa ~ age + group + s(nodeID) + s(nodeID, by = "group", bs = "fs"), 
+  df      = df_sarica, 
+)}
 }
 \seealso{
 \link[mgcv:choose.k]{choose.k}

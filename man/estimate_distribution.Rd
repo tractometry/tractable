@@ -13,13 +13,13 @@ estimate_distribution(
 \arguments{
 \item{x}{A numeric vector that will be evaluated.}
 
+\item{distr_options}{A vector of distribution names to evaluate the values. \cr
+Possible options: ("beta", "gamma", "gaussian") \cr
+Default: c("beta", "gamma", "gaussian")}
+
 \item{eval_metric}{The distribution evaluation metric names. \cr
 Possible options: ("aic", "bic", "loglik") \cr
 Default: "aic"}
-
-\item{distr_names}{A vector of distribution names to evaluate the values. \cr
-Possible options: ("beta", "gamma", "gaussian") \cr
-Default: c("beta", "gamma", "gaussian")}
 }
 \value{
 The estimated \code{family} or \code{extended.family} function.

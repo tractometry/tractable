@@ -18,14 +18,23 @@ MGCV_METHODS <- c("GCV.Cp", "GACV.Cp", "REML", "P-REML", "fREML")
 #' @param node_col        The column name that encodes tract node positions.
 #'                        Default: "nodeID".
 #' @param node_k          The basis dimensions used to represent the node 
-#'                        smoother. If \code{node_group}, the basis value is 
-#'                        applied to the group as well. Default: NULL
+#'                        smoother. If `node_group`, the basis value is applied
+#'                        to the group as well. Default: NULL
 #' @param node_group      The column name to group the tract node smooth by.
 #'                        Default: NULL.
 #' @param participant_col The column name that encodes participant ID.
 #'                        Default: "subjectID".
 #'
 #' @return A GAM formula. 
+#' 
+#' @details
+#' The formula is build under the logic:
+#' ```
+#' target ~ regressors 
+#'   + s(node_col, <by = node_group>, <k = node_k>)
+#'   + s(participant_col, bs = "re")
+#' ```
+#' with `<variables>` indicating optional components.
 #'
 #' @examples
 #' formula <- build_formula(target = "dti_fa", node_k = 40)
@@ -97,15 +106,15 @@ build_formula <- function(
 
 #' Estimate distribution function from values.
 #' 
-#' @param x           A numeric vector that will be evaluated. 
-#' @param distr_names A vector of distribution names to evaluate the values. \cr
-#'                    Possible options: ("beta", "gamma", "gaussian") \cr
-#'                    Default: c("beta", "gamma", "gaussian")
-#' @param eval_metric The distribution evaluation metric names. \cr
-#'                    Possible options: ("aic", "bic", "loglik") \cr
-#'                    Default: "aic"
+#' @param x             A numeric vector that will be evaluated. 
+#' @param distr_options A vector of distribution names to evaluate the values. \cr
+#'                      Possible options: ("beta", "gamma", "gaussian") \cr
+#'                      Default: c("beta", "gamma", "gaussian")
+#' @param eval_metric   The distribution evaluation metric names. \cr
+#'                      Possible options: ("aic", "bic", "loglik") \cr
+#'                      Default: "aic"
 #' 
-#' @return The estimated \code{family} or \code{extended.family} function.
+#' @return The estimated `family` or `extended.family` function.
 #' 
 #' @seealso [fitdistrplus::fitdist]
 #' 
@@ -164,8 +173,10 @@ estimate_distribution <- function(
 #' Estimate smoothing basis dimensions for GAM smoothers.
 #' 
 #' @description 
-#' Function used to estimate smoothing basis, \code{k}, for each smooth term. 
-#'
+#' Function used to estimate smoothing basis, `k`, for each smooth term. 
+#' 
+#' @usage NULL
+#' 
 #' @param target         The column name that encodes the metric to model.
 #' @param smooth_terms   List of smooth terms to estimate smoothing basis. See 
 #'                       details for examples of smoothing terms.
@@ -173,6 +184,8 @@ estimate_distribution <- function(
 #' @param regressors     Column name or list of column names to use as 
 #'                       regressors. This list can also include smoothing terms.
 #'                       Default: NULL.
+#' @param formula        GAM formula. Can contain mulitple smooth terms to 
+#'                       estimate. See details for more information.
 #' @param k_values       A list of k values to consider. Default: 1:50
 #' @param bs             The name of the default smoothing basis. Default: "tp"
 #' @param kindex_thr     The k-index threshold. Default: 0.95
@@ -188,12 +201,12 @@ estimate_distribution <- function(
 #'                               ("gamma"), or [stats::gaussian] ("gaussian").
 #'                         \item If function, see [family][stats::family]
 #'                               or [family.mgcv][mgcv::family.mgcv] for 
-#'                               more \code{family} or \code{extended.family} 
+#'                               more `family` or `extended.family` 
 #'                               class functions.
 #'                       } 
 #' @param method         GAM fitting method passed to [bam][mgcv::bam()]. 
 #'                       Default: "fREML"
-#' @param discrete       With \code{method} is "fREML" it is possible to 
+#' @param discrete       With `method` is "fREML" it is possible to 
 #'                       discretize covariates for storage and efficiency 
 #'                       reasons. See [bam][mgcv::bam] for more information. 
 #'                       Default: TRUE
@@ -204,56 +217,85 @@ estimate_distribution <- function(
 #' ## Smooth terms specification
 #' Smooth terms can be specified as: \cr
 #' 
-#' \code{s(x)} \cr
-#' The smooth term will be estimated with the defaults from \code{k_values} and
-#' \code{bs}. \cr \cr
-#' \code{s(x, k = 1:10, bs = 'cp')} \cr
-#' The smooth term will be estimated with \code{k} values 1 to 10 and a basis 
+#' `s(x)` \cr
+#' The smooth term will be estimated with the defaults from `k_values` and
+#' `bs`. \cr \cr
+#' `s(x, k = 1:10, bs = 'cp')` \cr
+#' The smooth term will be estimated with `k` values 1 to 10 and a basis 
 #' set of 'cp'. \cr \cr
-#' \code{s(x, by = group, k = c(2, 7))} \cr 
-#' The smooth term will estimate with \code{k} value of 2 and 7 and using the
-#' \code{by} variable \code{group}. \cr \cr
-#' \code{s(x, y, bs = 'fs', m = 3)} \cr
-#' The smooth term over two variables, \code{x} and \code{y}, will be estimated 
-#' with the default \code{k_values} with additional arguments of basis set of 
-#' 'fs' and \code{m} of 3. \cr
+#' `s(x, by = group, k = c(2, 7))` \cr 
+#' The smooth term will estimate with `k` value of 2 and 7 and using the
+#' `by` variable `group`. \cr \cr
+#' `s(x, y, bs = 'fs', m = 3)` \cr
+#' The smooth term over two variables, `x` and `y`, will be estimated 
+#' with the default `k_values` with additional arguments of basis set of 
+#' 'fs' and `m` of 3. \cr
 #' 
 #' Not shown are other mgcv smoothers, such as [te][mgcv::te], [ti][mgcv::ti], 
 #' and [t2][mgcv::t2], which are also available.
 #' 
 #' ## Estimation process
-#' For each \code{smooth_term}, the function will iteratively fit a GAM model
-#' following the formula while incrementing through \code{k_values}:
+#' For each `smooth_term`, the function will iteratively fit a GAM model
+#' following the formula while incrementing through `k_values`:
 #' 
-#' \tabular{lll}{ \tab \tab \code{target ~ regressor_terms + smooth_term} }
+#' \tabular{lll}{ \tab \tab `target ~ regressor_terms + smooth_term` }
 #' 
-#' where \code{target} is the dependent variable, \code{regressor_terms} are the
+#' where `target` is the dependent variable, `regressor_terms` are the
 #' additive effects that should be accounted for while estimating the smoothing
-#' term, and \code{smooth_term} is the smoothing term that is currently being 
+#' term, and `smooth_term` is the smoothing term that is currently being 
 #' estimated.
 #' 
 #' ## Stopping criterion
 #' The estimation process has two stopping criterion: 
 #'
-#' \itemize{
-#'   \item The procedure will stop once the k-index value exceeds 
-#'         \code{kindex_thr} \strong{AND} the p-value exceeds the 
-#'         \code{pvalue_thr}. \cr
-#'   \item If the thresholds are not met, the procedure will stop once it runs 
-#'         through all of the \code{k_values}. \cr
-#' }
+#' - The procedure will stop once the k-index value exceeds `kindex_thr` 
+#'   **AND** the p-value exceeds the `pvalue_thr`.
+#' - If the thresholds are not met, the procedure will stop once it runs through
+#'   all of the `k_values`, and returns the last term. 
 #' 
 #' @return A list containing two items: \tabular{llll}{
-#'   \tab \code{est_terms} \tab \tab List of smoothing terms with "best" estimated 
+#'   \tab `est_terms` \tab \tab List of smoothing terms with "best" estimated 
 #'                         smoothing basis. \cr
-#'   \tab \code{k_estimates} \tab \tab A data frame with contains all estimated 
+#'   \tab `k_estimates` \tab \tab A data frame with contains all estimated 
 #'                         smoothing terms and corresponding k-index and p-values. \cr
 #' }
+#' 
 #' @seealso [choose.k][mgcv::choose.k]
+#' 
+#' @examples
+#' \dontrun{
+#' df_sarica <- read_afq_sarica(na_omit = TRUE)
+#' 
+#' # default specification method
+#' estimate_smooth_basis(
+#'   target       = "fa", 
+#'   smooth_terms = c("s(nodeID)", "s(nodeID, by = group, bs = 'fs')"), 
+#'   df           = df_sarica, 
+#'   regressors   = c("age", "group"), 
+#' )
+#' 
+#' # formula specification method
+#' estimate_smooth_basis(
+#'   formula = fa ~ age + group + s(nodeID) + s(nodeID, by = "group", bs = "fs"), 
+#'   df      = df_sarica, 
+#' )}
 #' @export
 estimate_smooth_basis <- function(...) {
   UseMethod("estimate_smooth_basis")
 }
+
+# Reordering parameters in documentation (hack)
+# See: https://github.com/r-lib/roxygen2/issues/1475
+
+#' @rdname estimate_smooth_basis
+#' @name estimate_smooth_basis
+#' @aliases NULL
+#' @usage NULL
+#' @order 0
+estimate_smooth_basis_dummy <- function(
+  target, smooth_terms, formula, df, regressors, k_values, bs, kindex_thr, 
+  pvalue_thr, family, method, discrete, ...
+) { NULL }
 
 #' @rdname estimate_smooth_basis
 #' @export
@@ -357,7 +399,7 @@ estimate_smooth_basis.default <- function(
     smooth_vars_strip <- stringr::str_replace_all(smooth_vars, "\\s", "")
     if (stringr::str_detect(smooth_vars, "by = ")) {
       s_vars <- stringr::str_replace(smooth_vars_strip, sprintf(",by=%s", by_var), "")
-      by_levels <- levels(df_sarica[[by_var]]) # extract group by levels
+      by_levels <- levels(df[[by_var]]) # extract group by levels
       smooth_rowname <- sprintf("%s(%s):%s%s", smooth_func, s_vars, by_var, by_levels)
     } else { # else, no group by levels to consider
       smooth_rowname <- sprintf("%s(%s)", smooth_func, smooth_vars_strip)
@@ -476,61 +518,119 @@ estimate_smooth_basis.formula <- function(
 #' @description 
 #' Function used to fit a GAM formula from an explicit formula or builds a 
 #' formula from the given arguments. 
-#'
-#' @param formula         Explicit formula to use for the GAM.
-#' @param df              The data frame contains GAM metrics.  
+#' 
+#' @usage NULL
+#' 
+#' @param target          The column name that encodes the metric to model.
+#' @param df              The data frame that contains the GAM metrics.  
+#' @param regressors      Column name or list of column names to use as 
+#'                        regressors. This list can also include smoothing terms.
+#'                        Default: NULL.
 #' @param node_col        The column name that encodes tract node positions.
 #'                        Default: "nodeID".
-#' @param target          The column name that encodes the metric to model.
-#' @param regressors      Column name or list of column names to use as 
-#'                        regressors, not including nodes smoothing terms and 
-#'                        the participant random effect. This list can also 
-#'                        include smoothing terms. Default: NULL.
 #' @param node_k          The basis dimensions used to represent the node 
-#'                        smoother. If `node_group`, the basis value is applied
-#'                        to the group as well. Default: 'auto'. 
+#'                        smoother. See details 
+#'                        to the group as well. Default: NULL
 #' @param node_group      The column name to group the tract node smooth by
 #'                        (i.e., `s(node_col, by = node_group, k = node_k)`).
-#' @return Fit GAM model
+#' @param participant_col The column name that encodes participant ID.
+#'                        Default: "subjectID".
+#' @param autocor         Logical indicating if AR1 autocorrelation should be 
+#'                        corrected for  in the GAM model. Default: TRUE
+#' @param family          Name or family function of the distribution to use for
+#'                        modeling the GAM dependent variable. 
+#'                        \itemize{
+#'                          \item If name, the possible values: ("auto", "beta", 
+#'                                "gamma", "gaussian").
+#'                          \item If "auto", will automatically determine the 
+#'                                distribution of best fit between 
+#'                                [mgcv::betar] ("beta"), [stats::Gamma] 
+#'                                ("gamma"), or [stats::gaussian] ("gaussian").
+#'                          \item If function, see [family][stats::family]
+#'                                or [family.mgcv][mgcv::family.mgcv] for 
+#'                                more `family` or `extended.family` 
+#'                                class functions.
+#'                        }  
+#' @param method          GAM fitting method passed to [bam][mgcv::bam()]. 
+#'                        Default: "fREML"
+#' @param discrete        With `method` is "fREML" it is possible to 
+#'                        discretize covariates for storage and efficiency 
+#'                        reasons. See [bam][mgcv::bam] for more information. 
+#'                        Default: TRUE
+#' @param formula         Explicit formula to use for the GAM model. 
+#' @param ...             Further keyword arguments to be passed to 
+#'                        [estimate_basis_smooth][tractable::estimate_basis_smooth] 
+#'                        and [bam][mgcv::bam]
+#' 
+#' @return Fit GAM model object.
 #'
 #' @details
-#' This function has a series of steps:
-#' \enumerate{
-#'   \item If family == "auto", choose the distribution (either 'beta', 'gamma',
-#'         or 'norm') that has the lowest AIC when fitting to the GAM dependent
-#'         variable data using [fitdistrplus::fitdist()].
-#'   \item If node_k == "auto", build an initial GAM model with k = 2 and
-#'      continue to double the k value until gam.check shows that k is
-#'      large enough.
-#'   \item Fit a GAM model according to the formula given or build a formula 
-#'         that follow the below pattern: 
-#'      \cr \cr
-#'      target ~ regressor1 (+ regressor2 + ...) +
-#'               s(node_col, by = node_group, k = node_k) +
-#'               s(participant_col, bs = "re")
-#'      \cr
-#'   \item Optionally, save the output of gam.check and summary to files.
-#' }
-#'
+#' ## GAM model formula
+#' If calling `fit_gam` with the default method, the GAM model formula will be 
+#' built with [build_formula][tractable::build_formula]. 
+#' 
+#' The formula is built following the logic:
+#' ```
+#' target ~ <regressors>  
+#'   + s(node_col, <by = node_group>, k = <node_k or estimated>)
+#'   + s(participant_col, bs = "re")
+#' ```
+#' with `<variables>` indicating optional components.
+#' 
+#' ## Automated model fitting procedure
+#' 
+#' This function has a series of (optional) automatic steps in the GAM model 
+#' fitting procedure: 
+#' 
+#' 1. If `family == "auto"`, choose the distribution (either "beta", "gamma", or
+#'    "gaussian") that has the lowest AIC when fitting to the GAM dependent 
+#'    variable data. Implemented with 
+#'    [estimate_distribution][tractable::estimate_distribution].
+#' 2. If `node_k == "auto"`, estimates the best `k` for the node smoother. This
+#'    is implemented with [estimate_smooth_basis][tractable::estimate_distribution].
+#' 3. If `autocor == TRUE`, estimates the best AR1 autocorrelation lag and 
+#'    applies the lag to the GAM model. Implemented with [itsadug::start_value_rho].
+#' 
 #' @examples
 #' \dontrun{
-#' df_afq <- read.csv("/path/to/afq/output.csv")
+#' df_tract <- read_afq_sarica(na_omit = TRUE) %>% 
+#'   filter(tractID == "Right Corticospinal")
 #' 
-#' df_tract <- df_afq %>% 
-#'   filter(tractID == "CST_L")
-#' 
-#' gam_fit <- fit_gam(
-#'   target = "dti_fa", 
-#'   regressors = c("sex", "group"), 
-#'   df = df_tract, 
-#'   family = "gamma", 
-#'   node_k = "auto"
+#' # default method specification
+#' model_fit <- fit_gam(
+#'   target     = "fa", 
+#'   df         = df_tract,
+#'   regressors = c("age", "group"), 
+#'   node_group = "group", 
+#'   node_k     = "auto",
+#'   family     = "auto" 
 #' )
-#' }
+#' 
+#' # formula method specification
+#' model_fit <- fit_gam(
+#'   formula = fa ~ age + group 
+#'     + s(nodeID, by = "group", bs = "fs") 
+#'     + s(subjectID, bs = "re"), 
+#'   df = df_tract
+#' )}
 #' @export
 fit_gam <- function(...) {
   UseMethod("fit_gam")
 }
+
+# Reordering parameters in documentation (hack)
+# See: https://github.com/r-lib/roxygen2/issues/1475
+
+#' @rdname fit_gam
+#' @name fit_gam
+#' @aliases NULL
+#' @usage NULL
+#' @order 0
+fit_gam_dummy <- function(
+  target, formula, df, regressors, node_col, node_k, node_group, 
+  participant_col, autocor, family, method, discrete, ...
+) { NULL }
+
 
 #' @rdname fit_gam
 #' @export
@@ -693,6 +793,7 @@ fit_gam.default <- function(
   return(gam_fit)
 }
 
+
 #' @rdname fit_gam
 #' @export
 fit_gam.formula <- function(
@@ -829,15 +930,44 @@ fit_gam.formula <- function(
 #' Save GAM model outputs.
 #' 
 #' @description
-#' This function saves the GAM model as RData (.rda) file, the model summary as
-#' a text (.txt) file, and the [mgcv::gam.check()] figures as a PNG (.png) file.
+#' This function saves the GAM model as RData (.rda) file. Optionally, it will 
+#' save the model summary as a text (.txt) file, the [mgcv::gam.check] 
+#' figures as a PNG (.png), and the [mgcv::k.check] output as a text (.txt) file.
 #' 
-#' @param gam_model asdfasdf
-#' @param output_file asdfasdf
-#' @param model_summary asdfasdf
-#' @param model_check  asdfasdf
-#' @return None. 
+#' @param gam_model        GAM model object to be saved as an RData file.
+#' @param output_file      RData output file name. Accepted a file extensions: 
+#'                         .RData, .Rdata, .rdata, or .rda.
+#' @param model_summary    A logical indicating whether the model summary output
+#'                         should be saved as a text file. 
+#'                         Default: TRUE
+#' @param model_check      A logical indicating whether the model check reports
+#'                         should be saved. 
+#'                         Default: FALSE
+#'
+#' @return NULL 
+#' 
+#' @details
+#' If `model_summary` is TRUE, the output of `summary(gam_model)` will
+#' be captured and saved in a text file with the following naming convention
+#' "<output_file>_Summary.txt".
+#' 
+#' If `model_check` is TRUE, the outputs of [mgcv::gam.check] will be 
+#' captured and saved. [mgcv::gam.check] consists of two components:
+#'
+#' 1. GAM model diagnostic plots, implemented through [gratia::appraise]. The
+#'    output will be saved with following naming convention: 
+#'    "<output_file>_GamCheck.png"
+#' 2. Smoothing basis dimension checks, implemented through [mgcv::k.check]. The
+#'    output will be saved with the following naming convention:
+#'    "<output_file>_GamCheck.txt"
+#'
 #'  
+#' @examples 
+#' \dontrun{
+#' save_gam(
+#'   gam_model   = model_fit, 
+#'   output_file = "output.rda"
+#' )}
 #' @export
 save_gam <- function(
   gam_model, 
@@ -883,6 +1013,8 @@ save_gam <- function(
       file = save_name
     )
   }
+
+  return(NULL)
 }
 
 
