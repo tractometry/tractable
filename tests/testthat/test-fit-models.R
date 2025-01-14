@@ -75,7 +75,7 @@ test_that("estimate_smooth_basis.default runs as expected", {
 
   estimated_information <- estimate_smooth_basis(
     target       = "md", 
-    smooth_terms = "s(nodeID, bs = 'ts', k = seq(12, 24, 4))", 
+    smooth_terms = "s(nodeID, bs = 'ts', k = c(12, 20))", 
     df           = df_sarica, 
   )
   expected_term <- "s(nodeID, bs = 'ts', k = 20)"
@@ -132,7 +132,7 @@ test_that("estimate_smooth_basis.formula runs as expected", {
     dplyr::filter(tractID == "Right Corticospinal")
 
   estimated_information <- estimate_smooth_basis(
-    formula = md ~ s(nodeID, bs = "ts", k = seq(12, 24, 4)), 
+    formula = md ~ s(nodeID, bs = "ts", k = k = c(12, 20)), 
     df      = df_sarica
   )
   expected_term <- "s(nodeID, bs = 'ts', k = 20)"
