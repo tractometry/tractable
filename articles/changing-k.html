@@ -8,8 +8,8 @@
 <title>Changing model flexibility • tractable</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
-<link href="../deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Changing model flexibility">
 </head>
 <body>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">tractable</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/changing-k.html">Changing model flexibility</a></li>
     <li><a class="dropdown-item" href="../articles/tractable-autocorrelations.html">Including Autocorrelation Effects in GAMs</a></li>
-    <li><a class="dropdown-item" href="../articles/tractable-single-bundle.html">Fitting Generalized Additive Models (GAMs)</a></li>
+    <li><a class="dropdown-item" href="../articles/tractable-single-tract.html">Fitting Generalized Additive Models (GAMs)</a></li>
   </ul>
 </li>
       </ul>
@@ -60,16 +60,18 @@
       <h1>Changing model flexibility</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/tractometry/tractable/blob/0.2/vignettes/changing-k.Rmd" class="external-link"><code>vignettes/changing-k.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/tractometry/tractable/blob/0.3.0/vignettes/changing-k.Rmd" class="external-link"><code>vignettes/changing-k.Rmd</code></a></small>
       <div class="d-none name"><code>changing-k.Rmd</code></div>
     </div>
 
     
     
 <p>This vignette demonstrates how a GAM model changes with increased
-flexibility. The data we will use here contains tract profiles from
-diffusion MRI measurements in a group of patients with Amyotrophic
-Lateral Sclerosis (ALS) and a group of matched controls <span class="citation">(Sarica et al. 2017)</span>.</p>
+flexibility.</p>
+<p>The data we will use here contains tract profiles from diffusion MRI
+measurements in a group of patients with Amyotrophic Lateral Sclerosis
+(ALS) and a group of matched controls <span class="citation">(Sarica et
+al. 2017)</span>.</p>
 <p>We start by loading the <code>tractable</code> library and
 <code>gratia</code>, as well as <code>ggplot2</code>, which we will use
 to interpret the fitted model.</p>
@@ -78,14 +80,27 @@ to interpret the fitted model.</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gavinsimpson.github.io/gratia/" class="external-link">gratia</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
 <p>Next, we will use a function that is included in
-<code>tractable</code> to read this dataset directly into memory.
-Importantly, both the group (“ALS” or “CTRL”) and the subject identifier
-(“subjectID”) need to be factors for subsequent analysis to work
-properly.</p>
+<code>tractable</code> to read this dataset directly into memory.</p>
+<p>Importantly, both the group (“ALS” or “CTRL”) and the subject
+identifier (“subjectID”) need to be factors for subsequent analysis to
+work properly.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sarica</span> <span class="op">&lt;-</span> <span class="fu">tractable</span><span class="fu">::</span><span class="fu"><a href="../reference/read_afq_sarica.html">read_afq_sarica</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">sarica</span><span class="op">$</span><span class="va">group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">sarica</span><span class="op">$</span><span class="va">class</span><span class="op">)</span></span>
-<span><span class="va">sarica</span><span class="op">$</span><span class="va">subjectID</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">unclass</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">sarica</span><span class="op">$</span><span class="va">subjectID</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">df_sarica</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_afq_sarica.html">read_afq_sarica</a></span><span class="op">(</span>na_omit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> </span>
+<span><span class="va">df_sarica</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 93,377 × 8</span></span></span>
+<span><span class="co">#&gt;    subjectID   tractID                 nodeID    fa    md   age group gender</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> subject_000 Left Thalamic Radiation      0 0.174 0.965    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> subject_000 Left Thalamic Radiation      1 0.227 0.912    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> subject_000 Left Thalamic Radiation      2 0.282 0.874    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> subject_000 Left Thalamic Radiation      3 0.318 0.851    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> subject_000 Left Thalamic Radiation      4 0.341 0.830    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> subject_000 Left Thalamic Radiation      5 0.353 0.812    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> subject_000 Left Thalamic Radiation      6 0.357 0.802    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> subject_000 Left Thalamic Radiation      7 0.357 0.795    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> subject_000 Left Thalamic Radiation      8 0.359 0.790    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> subject_000 Left Thalamic Radiation      9 0.371 0.784    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 93,367 more rows</span></span></span></code></pre></div>
 <p>We fit models with different levels of flexibility, encoded in
 different values of <code>k</code>:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -93,61 +108,47 @@ different values of <code>k</code>:</p>
 <span></span>
 <span><span class="va">models</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">k_values</span><span class="op">)</span><span class="op">)</span><span class="op">{</span></span>
-<span>   <span class="va">models</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tractable_single_bundle.html">tractable_single_bundle</a></span><span class="op">(</span></span>
-<span>    df_afq <span class="op">=</span> <span class="va">sarica</span>,</span>
-<span>    tract <span class="op">=</span> <span class="st">"Right Corticospinal"</span>,</span>
-<span>    participant_id <span class="op">=</span> <span class="st">"subjectID"</span>,</span>
-<span>    group_by <span class="op">=</span> <span class="st">"group"</span>,</span>
-<span>    covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>, <span class="st">"group"</span><span class="op">)</span>,</span>
-<span>    dwi_metric <span class="op">=</span> <span class="st">"fa"</span>,</span>
-<span>    k <span class="op">=</span> <span class="va">k_values</span><span class="op">[</span><span class="va">i</span><span class="op">]</span></span>
+<span>   <span class="va">models</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tractable_single_tract.html">tractable_single_tract</a></span><span class="op">(</span></span>
+<span>    target     <span class="op">=</span> <span class="st">"fa"</span>, </span>
+<span>    df         <span class="op">=</span> <span class="va">df_sarica</span>, </span>
+<span>    tract      <span class="op">=</span> <span class="st">"Right Corticospinal"</span>,</span>
+<span>    regressors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>, <span class="st">"group"</span><span class="op">)</span>, </span>
+<span>    node_k     <span class="op">=</span> <span class="va">k_values</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, </span>
+<span>    node_group <span class="op">=</span> <span class="st">"group"</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="co">#&gt; Warning in estimate.theta(theta, family, y, mu, scale = scale1, wt = G$w, :</span></span>
-<span><span class="co">#&gt; step failure in theta estimation</span></span>
-<span><span class="co">#&gt; Warning in estimate.theta(theta, family, y, mu, scale = scale1, wt = G$w, :</span></span>
-<span><span class="co">#&gt; step failure in theta estimation</span></span></code></pre></div>
+<span><span class="op">}</span></span></code></pre></div>
 <p>And we plot the smooths, divided by group for each one of these
 levels:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">k_values</span><span class="op">)</span><span class="op">)</span><span class="op">{</span></span>
 <span>  <span class="va">plots</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">models</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>    <span class="fu">gratia</span><span class="fu">::</span><span class="fu"><a href="https://gavinsimpson.github.io/gratia/reference/smooth_estimates.html" class="external-link">smooth_estimates</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>    <span class="fu">gratia</span><span class="fu">::</span><span class="fu"><a href="https://gavinsimpson.github.io/gratia/reference/add_confint.html" class="external-link">add_confint</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">nodeID</span>, y <span class="op">=</span> <span class="va">.estimate</span>, ymin <span class="op">=</span> <span class="va">.lower_ci</span>, </span>
-<span>                        ymax <span class="op">=</span> <span class="va">.upper_ci</span>, group <span class="op">=</span> <span class="va">group</span>, color <span class="op">=</span> <span class="va">group</span>, </span>
-<span>                        fill <span class="op">=</span> <span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span>color <span class="op">=</span> <span class="cn">NA</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>y <span class="op">=</span> <span class="st">"FA"</span>, title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"k = %d"</span>, <span class="va">k_values</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://gavinsimpson.github.io/gratia/reference/smooth_estimates.html" class="external-link">smooth_estimates</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu"><a href="https://gavinsimpson.github.io/gratia/reference/add_confint.html" class="external-link">add_confint</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">.type</span> <span class="op">!=</span> <span class="st">"Random effect"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">nodeID</span>, y <span class="op">=</span> <span class="va">.estimate</span>, ymin <span class="op">=</span> <span class="va">.lower_ci</span>, </span>
+<span>               ymax <span class="op">=</span> <span class="va">.upper_ci</span>, group <span class="op">=</span> <span class="va">group</span>, color <span class="op">=</span> <span class="va">group</span>, </span>
+<span>               fill <span class="op">=</span> <span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span>color <span class="op">=</span> <span class="cn">NA</span>, alpha <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"FA"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"k = %d"</span>, <span class="va">k_values</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">plots</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"k = %d"</span>, <span class="va">k_values</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">plots</span></span>
-<span><span class="co">#&gt; [[1]]</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning</span></span>
-<span><span class="co">#&gt; -Inf</span></span>
-<span><span class="co">#&gt; Warning: Removed 48 rows containing missing values or values outside the scale range</span></span>
-<span><span class="co">#&gt; (`geom_line()`).</span></span></code></pre></div>
-<p><img src="changing-k_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
+<span><span class="co">#&gt; $`k = 4`</span></span></code></pre></div>
+<p><img src="changing-k_files/figure-html/plot_k-1.png" width="696" style="display: block; margin: auto;"></p>
 <pre><code><span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; [[2]]</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning -Inf</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): Removed 48 rows containing missing values or values outside the scale range</span></span>
-<span><span class="co">#&gt; (`geom_line()`).</span></span></code></pre>
-<p><img src="changing-k_files/figure-html/unnamed-chunk-4-2.png" width="700"></p>
+<span><span class="co">#&gt; $`k = 8`</span></span></code></pre>
+<p><img src="changing-k_files/figure-html/plot_k-2.png" width="696" style="display: block; margin: auto;"></p>
 <pre><code><span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; [[3]]</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning -Inf</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): Removed 48 rows containing missing values or values outside the scale range</span></span>
-<span><span class="co">#&gt; (`geom_line()`).</span></span></code></pre>
-<p><img src="changing-k_files/figure-html/unnamed-chunk-4-3.png" width="700"></p>
+<span><span class="co">#&gt; $`k = 16`</span></span></code></pre>
+<p><img src="changing-k_files/figure-html/plot_k-3.png" width="696" style="display: block; margin: auto;"></p>
 <pre><code><span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; [[4]]</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning -Inf</span></span>
-<span><span class="co">#&gt; Warning in max(ids, na.rm = TRUE): Removed 48 rows containing missing values or values outside the scale range</span></span>
-<span><span class="co">#&gt; (`geom_line()`).</span></span></code></pre>
-<p><img src="changing-k_files/figure-html/unnamed-chunk-4-4.png" width="700"></p>
+<span><span class="co">#&gt; $`k = 32`</span></span></code></pre>
+<p><img src="changing-k_files/figure-html/plot_k-4.png" width="696" style="display: block; margin: auto;"></p>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>

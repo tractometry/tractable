@@ -8,8 +8,8 @@
 <title>Analyzing diffusion MRI tract profiles • tractable</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
-<link href="deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Analyzing diffusion MRI tract profiles">
 <meta name="description" content="A toolbox for analyzing diffusion MRI tract profiles.">
 <meta property="og:description" content="A toolbox for analyzing diffusion MRI tract profiles.">
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">tractable</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,7 +37,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/changing-k.html">Changing model flexibility</a></li>
     <li><a class="dropdown-item" href="articles/tractable-autocorrelations.html">Including Autocorrelation Effects in GAMs</a></li>
-    <li><a class="dropdown-item" href="articles/tractable-single-bundle.html">Fitting Generalized Additive Models (GAMs)</a></li>
+    <li><a class="dropdown-item" href="articles/tractable-single-tract.html">Fitting Generalized Additive Models (GAMs)</a></li>
   </ul>
 </li>
       </ul>
@@ -120,9 +120,9 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Adam Richie-Halford <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0001-9276-9084" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
-<li>Kelly Chang <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0001-5385-2782" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
-<li>Teresa Gomez <br><small class="roles"> Author </small> <a href="https://orcid.org/XXX" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Adam Richie-Halford <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0001-9276-9084" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Kelly Chang <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0001-5385-2782" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Teresa Gomez <br><small class="roles"> Author </small>  </li>
 <li>McKenzie Hagen <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0002-7454-8189" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
 <li>Ethan Roy <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0002-4956-2237" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
 <li>Ariel Rokem <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0003-0679-1985" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
@@ -132,8 +132,8 @@
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/yeatmanlab/tractable/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/yeatmanlab/tractable/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
-<li><a href="https://app.codecov.io/gh/yeatmanlab/tractable?branch=main" class="external-link"><img src="https://codecov.io/gh/yeatmanlab/tractable/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://github.com/tractometry/tractable/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/tractometry/tractable/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://app.codecov.io/gh/tractometry/tractable?branch=main" class="external-link"><img src="https://codecov.io/gh/tractometry/tractable/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></li>
 </ul>
 </div>
 

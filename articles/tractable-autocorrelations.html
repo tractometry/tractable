@@ -8,8 +8,8 @@
 <title>Including Autocorrelation Effects in GAMs • tractable</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
-<link href="../deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Including Autocorrelation Effects in GAMs">
 </head>
 <body>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">tractable</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/changing-k.html">Changing model flexibility</a></li>
     <li><a class="dropdown-item" href="../articles/tractable-autocorrelations.html">Including Autocorrelation Effects in GAMs</a></li>
-    <li><a class="dropdown-item" href="../articles/tractable-single-bundle.html">Fitting Generalized Additive Models (GAMs)</a></li>
+    <li><a class="dropdown-item" href="../articles/tractable-single-tract.html">Fitting Generalized Additive Models (GAMs)</a></li>
   </ul>
 </li>
       </ul>
@@ -60,152 +60,277 @@
       <h1>Including Autocorrelation Effects in GAMs</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/tractometry/tractable/blob/0.2/vignettes/tractable-autocorrelations.Rmd" class="external-link"><code>vignettes/tractable-autocorrelations.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/tractometry/tractable/blob/0.3.0/vignettes/tractable-autocorrelations.Rmd" class="external-link"><code>vignettes/tractable-autocorrelations.Rmd</code></a></small>
       <div class="d-none name"><code>tractable-autocorrelations.Rmd</code></div>
     </div>
 
     
     
-<p>This vignette demonstrates the use of an AR1 model within a GAM to
-account for autocorrelation of the error terms of the model. We will use
-data from the Sarica dataset <span class="citation">(Sarica et al.
-2017)</span> to demonstrate the how to include an autocorrelation term
-and its impact on the model statistics.</p>
-<p>We start by loading the <code>tractable</code> library:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/tractometry/tractable" class="external-link">tractable</a></span><span class="op">)</span></span></code></pre></div>
+<p>This vignette demonstrates the use of an AR1 model within the GAM to
+account for the spatial autocorrelation of the errors of the model. The
+ideas that we use closely follow the work of Van Rij and colleagues
+<span class="citation">(Van Rij et al. 2019)</span>. While their work
+used data that is different in many respects from our data (time-series
+of eye pupil size in psycholingustic experiments), there are also some
+similarities to the tract profile data that we are analyzing in
+<code>tractable</code>. For example, the signals tend to change slowly
+over time in their analysis, and tend to change rather slowly in space
+in our analysis. In both cases, this means that the models fail to
+capture some characteristics of the data, and that some inferences from
+the GAM models tend to be anti-conservative, unless a mitigation
+strategy and careful model checking are implemented. In particular, in
+both cases, the residuals of the model may exhibit substantial
+auto-correlation. They may also end up being centered not on zero. It is
+always worth checking the underlying assumption of normally-distributed
+residuals by plotting a so-called QQ plot. Finally, we can use formal
+model comparison methods to adjudicate between alternative models.</p>
+<p>As an example of this approach, we will use data from the Sarica
+dataset <span class="citation">(Sarica et al. 2017)</span> to
+demonstrate how to include an autocorrelation term in the GAM, and its
+impact on model statistics. We start by loading the
+<code>tractable</code> library, as well as the <a href="https://www.rdocumentation.org/packages/itsadug/versions/2.4.1/topics/itsadug" class="external-link">itsadug</a>
+and <a href="https://gavinsimpson.github.io/gratia/" class="external-link">gratia</a>
+libraries, which both provide functionality to assess GAMs fit by
+<code>mgcv</code> (our workhorse for GAM fitting).</p>
+<pre><code><span><span class="co">#&gt; Loading required package: mgcv</span></span>
+<span><span class="co">#&gt; Loading required package: nlme</span></span>
+<span><span class="co">#&gt; This is mgcv 1.9-1. For overview type 'help("mgcv-package")'.</span></span>
+<span><span class="co">#&gt; Loading required package: plotfunctions</span></span>
+<span><span class="co">#&gt; Loaded package itsadug 2.4 (see 'help("itsadug")' ).</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'gratia'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:itsadug':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     dispersion</span></span></code></pre>
 <p>Next, we will use a function that is included in
-<code>tractable</code> to read this dataset directly into memory.
-Importantly, both the group (“ALS” or “CTRL”) and the subject identifier
-(“subjectID”) need to be factors for subsequent analysis to work
-properly.</p>
+<code>tractable</code> to read this dataset directly into memory.</p>
+<p>Importantly, both the group (“ALS” or “CTRL”) and the subject
+identifier (“subjectID”) need to be factors for subsequent analysis to
+work properly.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sarica</span> <span class="op">&lt;-</span> <span class="fu">tractable</span><span class="fu">::</span><span class="fu"><a href="../reference/read_afq_sarica.html">read_afq_sarica</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">sarica</span><span class="op">$</span><span class="va">group</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">sarica</span><span class="op">$</span><span class="va">class</span><span class="op">)</span></span>
-<span><span class="va">sarica</span><span class="op">$</span><span class="va">subjectID</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">unclass</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">sarica</span><span class="op">$</span><span class="va">subjectID</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>We will first fit a GAM model without any autocorrelation structure
-using the <code>tractable_single_bundle</code> function. This model will
-use “group” and “age” to predict FA, while smoothing over the tract
-nodes. We will also use the automated procedure implemented in
-<code>tractable_single_bundle</code> to determine the ideal value for
+<code class="sourceCode R"><span><span class="va">df_sarica</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_afq_sarica.html">read_afq_sarica</a></span><span class="op">(</span>na_omit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">df_sarica</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 93,377 × 8</span></span></span>
+<span><span class="co">#&gt;    subjectID   tractID                 nodeID    fa    md   age group gender</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> subject_000 Left Thalamic Radiation      0 0.174 0.965    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> subject_000 Left Thalamic Radiation      1 0.227 0.912    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> subject_000 Left Thalamic Radiation      2 0.282 0.874    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> subject_000 Left Thalamic Radiation      3 0.318 0.851    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> subject_000 Left Thalamic Radiation      4 0.341 0.830    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> subject_000 Left Thalamic Radiation      5 0.353 0.812    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> subject_000 Left Thalamic Radiation      6 0.357 0.802    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> subject_000 Left Thalamic Radiation      7 0.357 0.795    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> subject_000 Left Thalamic Radiation      8 0.359 0.790    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> subject_000 Left Thalamic Radiation      9 0.371 0.784    54 ALS   F     </span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 93,367 more rows</span></span></span></code></pre></div>
+<p>We will first fit a GAM model that does not account for
+autocorrelation structure in the residuals using the
+<code>tractable_single_tract</code> function. This model will use
+“group” and “age” to account for the measured FA, while smoothing over
+the tract nodes. We will also use the automated procedure implemented in
+<code>tractable_single_tract</code> to determine the ideal value for
 <code>k</code>, a parameter used to determine the number of spline
-functions. The default behavior for <code>tractable_single_bundle</code>
-is to include the AR1 model. To avoid this, we set the parameter
+functions. The default behavior for <code>tractable_single_tract</code>
+is to include an AR1 model to account for autocorrelations, as we will
+see below. But for now, to avoid this, we first set the parameter
 <code>autocor</code> to <code>FALSE</code>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gam_fit_cst_no_ac</span> <span class="op">&lt;-</span> <span class="fu">tractable</span><span class="fu">::</span><span class="fu"><a href="../reference/tractable_single_bundle.html">tractable_single_bundle</a></span><span class="op">(</span></span>
-<span>  df_afq         <span class="op">=</span> <span class="va">sarica</span>,</span>
-<span>  tract          <span class="op">=</span> <span class="st">"Right Corticospinal"</span>,</span>
-<span>  participant_id <span class="op">=</span> <span class="st">"subjectID"</span>,</span>
-<span>  group_by       <span class="op">=</span> <span class="st">"group"</span>,</span>
-<span>  covariates     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>, <span class="st">"group"</span><span class="op">)</span>,</span>
-<span>  dwi_metric     <span class="op">=</span> <span class="st">"fa"</span>,</span>
-<span>  k              <span class="op">=</span> <span class="st">"auto"</span>,</span>
-<span>  autocor        <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>Examining the summary of the resulting GAM fit object shows us that
-the <code>k=16</code> is sufficiently large to describe the spatial
-variation of tract profile data. In addition, we see that there is a
-statistically significant effect of group (with a p-value of 4.66e-10)
-and no statistically significant effect of age (p=0.2748).</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_fit_cst_no_ac</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">cst_fit_no_autocor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tractable_single_tract.html">tractable_single_tract</a></span><span class="op">(</span></span>
+<span>  df         <span class="op">=</span> <span class="va">df_sarica</span>,</span>
+<span>  tract      <span class="op">=</span> <span class="st">"Right Corticospinal"</span>,</span>
+<span>  target     <span class="op">=</span> <span class="st">"fa"</span>,</span>
+<span>  regressors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>, <span class="st">"group"</span><span class="op">)</span>,</span>
+<span>  node_group <span class="op">=</span> <span class="st">"group"</span>,</span>
+<span>  node_k     <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>  autocor    <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cst_no_autocor_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cst_fit_no_autocor</span><span class="op">)</span></span>
+<span><span class="va">cst_no_autocor_summary</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Family: Beta regression(113.72) </span></span>
-<span><span class="co">#&gt; Link function: logit </span></span>
+<span><span class="co">#&gt; Family: gaussian </span></span>
+<span><span class="co">#&gt; Link function: identity </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula:</span></span>
-<span><span class="co">#&gt; fa ~ age + group + s(nodeID, by = group, k = 16) + s(subjectID, </span></span>
-<span><span class="co">#&gt;     bs = "re")</span></span>
+<span><span class="co">#&gt; fa ~ age + group + s(nodeID, by = group, bs = "fs", k = 16) + </span></span>
+<span><span class="co">#&gt;     s(subjectID, bs = "re")</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Parametric coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept) -0.148763   0.080666  -1.844   0.0652 .  </span></span>
-<span><span class="co">#&gt; age          0.001425   0.001305   1.092   0.2748    </span></span>
-<span><span class="co">#&gt; groupCTRL    0.138659   0.022209   6.243 4.66e-10 ***</span></span>
+<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept) 0.455764   0.019605   23.25  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; age         0.000335   0.000317    1.06     0.29    </span></span>
+<span><span class="co">#&gt; groupCTRL   0.034332   0.005405    6.35  2.3e-10 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Approximate significance of smooth terms:</span></span>
-<span><span class="co">#&gt;                       edf Ref.df      F p-value    </span></span>
-<span><span class="co">#&gt; s(nodeID):groupALS  14.65  14.98 512.68  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s(nodeID):groupCTRL 14.60  14.97 569.00  &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; s(subjectID)        42.22  45.00  15.13  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt;                      edf Ref.df     F p-value    </span></span>
+<span><span class="co">#&gt; s(nodeID):groupALS  14.6     15 538.0  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; s(nodeID):groupCTRL 14.5     15 592.9  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; s(subjectID)        42.2     45  15.1  &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; R-sq.(adj) =  0.793   Deviance explained = 80.1%</span></span>
-<span><span class="co">#&gt; fREML = 6902.9  Scale est. = 1         n = 4734</span></span></code></pre></div>
+<span><span class="co">#&gt; R-sq.(adj) =  0.794   Deviance explained = 79.7%</span></span>
+<span><span class="co">#&gt; fREML = -7670.9  Scale est. = 0.0021381  n = 4734</span></span></code></pre></div>
+<p>Examining the summary of the resulting GAM fit object shows us that
+the <code>k = 16</code> is sufficiently large to describe the spatial
+variation of tract profile data. In addition, we see that there is a
+statistically significant effect of group (with a p-value of
+2.3229^{-10}) and no statistically significant effect of age (p =
+0.2904).</p>
+<p>In this model, no steps were taken to account for autocorrelated
+residuals. We will use a few model diagnostics to evaluate the model.
+First, we will use the <code><a href="https://gavinsimpson.github.io/gratia/reference/appraise.html" class="external-link">gratia::appraise</a></code> function, which
+presents a few different visuals about the model:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://gavinsimpson.github.io/gratia/reference/appraise.html" class="external-link">appraise</a></span><span class="op">(</span><span class="va">cst_fit_no_autocor</span><span class="op">)</span></span></code></pre></div>
+<p><img src="tractable-autocorrelations_files/figure-html/appraise_cst_no_autocor-1.png" width="696" style="display: block; margin: auto;"></p>
+<p>The top left plot is a QQ plot, it shows the residuals as a function
+of their quantile. In a perfect world (or at least a world in which
+model assumptions are valid), these points should fall along the
+equality line. This plot is not terrible, but there are some deviations.
+Another plot to look at is the plot of the residuals as a function of
+the prediction. Here, we look both at the overall location and shape of
+the point cloud, as well as for any signs of clear structure. In this
+case, we see some signs of trouble: the whole cloud is shifted away from
+zero, and there are what appear as trails of points, suggesting that
+some points form patterns. The first of these issues is also apparent in
+the bottom left, where residuals are not zero centerd in the histogram
+of model residuals.</p>
+<p>Another diagnostic plot that is going to be crucial as a diagnostic
+is the plot of the autocorrelation function of the residuals. A plot of
+this sort is provided by the <code>itsadug</code> library:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">acf_resid</span><span class="op">(</span><span class="va">cst_fit_no_autocor</span><span class="op">)</span></span></code></pre></div>
+<p><img src="tractable-autocorrelations_files/figure-html/plot_acf_residuals_no_autocor-1.png" width="696" style="display: block; margin: auto;"></p>
+<p>The dashed blue lines indicate the 95% confidence interval for the
+auto-correlation function of white noise. Here, we see that the
+auto-correlation at many of the lags (and particularly in the immediate
+neighbor, lag-1) is substantially larger than would be expected for a
+function with no autocorrelations. These autocorrelations pose a danger
+to inference not only because of mis-specification of the model, but
+also because we are going to under-estimate the standard error of the
+model in this setting and this will result in false positives (this is
+what Van Rij et al.  elegantly refer to as “anti-conservative”
+models)</p>
 <p>To account for potential spatial autocorrelation of FA values along
-the length of the tract profile, we can incorporate a AR1 model into our
-GAM. Briefly, this AR1 model is a linear model that estimates the amount
-of influence of the FA value of the preceding node on the FA value of
-the current node (see <a href="https://journals.sagepub.com/doi/pdf/10.1177/2331216519832483" class="external-link"><span class="citation">Van Rij et al. (2019)</span></a> for an overview of
-accounting for autocorrelation using the <code>mgcv</code> package).</p>
+the length of the tract profile, we can incorporate an AR1 model into
+our GAM. Briefly, the AR1 model is a linear model that estimates and
+accounts for the amount of influence of the model residual FA value of
+each node on the residual FA value of their neighbor node. This is
+somewhat akin to “pre-whitening” that fMRI researchers undertake, to
+account for temporal auto-correlations in the time-series measured with
+fMRI (see e.g. <span class="citation">(Olszowy et al. 2019)</span>).</p>
 <p>The AR1 model takes a parameter
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
 to estimate autocorrelation effects. We can pass our initial model into
 the function <code><a href="https://rdrr.io/pkg/itsadug/man/start_value_rho.html" class="external-link">itsadug::start_value_rho</a></code> to automatically
 determine the value of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>.
-We can also plot the autocorrelation by setting <code>plot=TRUE</code>
-within that function (pictured below).</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rho</span> <span class="op">=</span> <span class="fu">itsadug</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/itsadug/man/start_value_rho.html" class="external-link">start_value_rho</a></span><span class="op">(</span><span class="va">gam_fit_cst_no_ac</span><span class="op">)</span></span>
-<span><span class="fu">itsadug</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/itsadug/man/start_value_rho.html" class="external-link">start_value_rho</a></span><span class="op">(</span><span class="va">gam_fit_cst_no_ac</span>, plot<span class="op">=</span><span class="cn">T</span><span class="op">)</span></span></code></pre></div>
-<p><img src="tractable-autocorrelations_files/figure-html/calculate%20rho-1.png" width="700"></p>
-<pre><code><span><span class="co">#&gt; [1] 0.9255492</span></span></code></pre>
-<p>By default, the <code>tractable_single_bundle</code> function will
-determine the value of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rho_1</span> <span class="op">&lt;-</span> <span class="fu">start_value_rho</span><span class="op">(</span><span class="va">cst_fit_no_autocor</span><span class="op">)</span></span>
+<span><span class="va">rho_1</span></span>
+<span><span class="co">#&gt; [1] 0.9353</span></span></code></pre></div>
+<p>By default, the <code>tractable_single_tract</code> function
+empirically determines the value of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math>
-and incorporate the AR1 model into the GAM estimation.</p>
+based on the data and uses it to incorporate the AR1 model of the
+residuals into the GAM estimation.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gam_fit_cst</span> <span class="op">&lt;-</span> <span class="fu">tractable</span><span class="fu">::</span><span class="fu"><a href="../reference/tractable_single_bundle.html">tractable_single_bundle</a></span><span class="op">(</span></span>
-<span>  df_afq         <span class="op">=</span> <span class="va">sarica</span>,</span>
-<span>  tract          <span class="op">=</span> <span class="st">"Right Corticospinal"</span>,</span>
-<span>  participant_id <span class="op">=</span> <span class="st">"subjectID"</span>,</span>
-<span>  group_by       <span class="op">=</span> <span class="st">"group"</span>,</span>
-<span>  covariates     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>, <span class="st">"group"</span><span class="op">)</span>,</span>
-<span>  dwi_metric     <span class="op">=</span> <span class="st">"fa"</span>,</span>
-<span>  k              <span class="op">=</span> <span class="st">"auto"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>Examining the summary of the resulting GAM fit object shows us that
-the inclusion of the AR1 model changes the resulting statistics of our
-model. Although there is still a statistically significant effect of
-group (p=0.044), the value of the t-statistic on this term has changed
-from 6.243 to 2.015.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">gam_fit_cst</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">cst_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tractable_single_tract.html">tractable_single_tract</a></span><span class="op">(</span></span>
+<span>  df         <span class="op">=</span> <span class="va">df_sarica</span>,</span>
+<span>  tract      <span class="op">=</span> <span class="st">"Right Corticospinal"</span>,</span>
+<span>  target     <span class="op">=</span> <span class="st">"fa"</span>,</span>
+<span>  regressors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"age"</span>, <span class="st">"group"</span><span class="op">)</span>,</span>
+<span>  node_group <span class="op">=</span> <span class="st">"group"</span>,</span>
+<span>  node_k     <span class="op">=</span> <span class="fl">16</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cst_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cst_fit</span><span class="op">)</span></span>
+<span><span class="va">cst_summary</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Family: Beta regression(61.146) </span></span>
-<span><span class="co">#&gt; Link function: logit </span></span>
+<span><span class="co">#&gt; Family: gaussian </span></span>
+<span><span class="co">#&gt; Link function: identity </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula:</span></span>
-<span><span class="co">#&gt; fa ~ age + group + s(nodeID, by = group, k = 16) + s(subjectID, </span></span>
-<span><span class="co">#&gt;     bs = "re")</span></span>
+<span><span class="co">#&gt; fa ~ age + group + s(nodeID, by = group, bs = "fs", k = 16) + </span></span>
+<span><span class="co">#&gt;     s(subjectID, bs = "re")</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Parametric coefficients:</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error t value Pr(&gt;|t|)  </span></span>
-<span><span class="co">#&gt; (Intercept) -0.329785   0.245062  -1.346    0.178  </span></span>
-<span><span class="co">#&gt; age          0.003904   0.003960   0.986    0.324  </span></span>
-<span><span class="co">#&gt; groupCTRL    0.144626   0.071782   2.015    0.044 *</span></span>
+<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept) 0.424914   0.057613    7.38  1.9e-13 ***</span></span>
+<span><span class="co">#&gt; age         0.000810   0.000932    0.87    0.385    </span></span>
+<span><span class="co">#&gt; groupCTRL   0.035789   0.016239    2.20    0.028 *  </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Approximate significance of smooth terms:</span></span>
-<span><span class="co">#&gt;                       edf Ref.df      F  p-value    </span></span>
-<span><span class="co">#&gt; s(nodeID):groupALS  14.50  14.97 74.217  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; s(nodeID):groupCTRL 14.38  14.95 85.385  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; s(subjectID)        37.89  45.00  9.105 0.000674 ***</span></span>
+<span><span class="co">#&gt;                      edf Ref.df     F p-value    </span></span>
+<span><span class="co">#&gt; s(nodeID):groupALS  14.8     15 311.5  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; s(nodeID):groupCTRL 14.8     15 358.4  &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; s(subjectID)        42.7     45  39.6  &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; R-sq.(adj) =  0.613   Deviance explained = 62.3%</span></span>
-<span><span class="co">#&gt; fREML = -6443.6  Scale est. = 1         n = 4734</span></span></code></pre></div>
+<span><span class="co">#&gt; R-sq.(adj) =  0.577   Deviance explained = 58.3%</span></span>
+<span><span class="co">#&gt; fREML = -14070  Scale est. = 0.0011312  n = 4734</span></span></code></pre></div>
+<p>Examining the summary of the resulting GAM fit object shows us that
+the inclusion of the AR1 model changes the resulting statistics of our
+model. Although there is still a statistically significant effect of
+group (p = 0.0276), the value of the t-statistic on this term has
+changed from 6.3523 to 2.2039, suggesting that the model has become
+substantially more conservative.</p>
+<p>Here as well, we can appraise the model with gratia:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://gavinsimpson.github.io/gratia/reference/appraise.html" class="external-link">appraise</a></span><span class="op">(</span><span class="va">cst_fit</span><span class="op">)</span></span></code></pre></div>
+<p><img src="tractable-autocorrelations_files/figure-html/appraise_fit_cst-1.png" width="696" style="display: block; margin: auto;"></p>
+<p>Notice some improvements to model characteristics: the residuals are
+more centered around zero and the QQ plot is somewhat improved. There is
+some residual structure in the scatter plot of residuals as a function
+of prediction. We can ask how bad this structure is in terms of the
+residual autocorrelation:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rho_2</span> <span class="op">&lt;-</span> <span class="fu">acf_resid</span><span class="op">(</span><span class="va">cst_fit</span><span class="op">)</span><span class="op">[</span><span class="st">"2"</span><span class="op">]</span> <span class="co"># at lag 2</span></span></code></pre></div>
+<p><img src="tractable-autocorrelations_files/figure-html/plot_acf_with_autocor-1.png" width="696" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rho_2</span></span>
+<span><span class="co">#&gt;      2 </span></span>
+<span><span class="co">#&gt; 0.2317</span></span></code></pre></div>
+<p>This shows that the lag-1 autocorrelation has been reduced from
+approximately 0.9353 to approximately 0.2317.</p>
+<p>Finally, formal model comparison can tell us which of these models
+better fit the data. Using the <code>itsadug</code> library this can be
+done using the Akaike Information Criterion as a comparator. In this
+case, this also indicates that the model that accounts for
+autocorrelations also has smaller residuals considering the number of
+parameters, suggesting that it is overall a better model of the
+data.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">compareML</span><span class="op">(</span><span class="va">cst_fit_no_autocor</span>, <span class="va">cst_fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; cst_fit_no_autocor: fa ~ age + group + s(nodeID, by = group, bs = "fs", k = 16) + </span></span>
+<span><span class="co">#&gt;     s(subjectID, bs = "re")</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; cst_fit: fa ~ age + group + s(nodeID, by = group, bs = "fs", k = 16) + </span></span>
+<span><span class="co">#&gt;     s(subjectID, bs = "re")</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Model cst_fit preferred: lower fREML score (6399.367), and equal df (0.000).</span></span>
+<span><span class="co">#&gt; -----</span></span>
+<span><span class="co">#&gt;                Model  Score Edf Difference    Df</span></span>
+<span><span class="co">#&gt; 1 cst_fit_no_autocor  -7671   8                 </span></span>
+<span><span class="co">#&gt; 2            cst_fit -14070   8  -6399.367 0.000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; AIC difference: 12816.00, model cst_fit has lower AIC.</span></span></code></pre></div>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-Olszowy2019-ge" class="csl-entry">
+Olszowy, Wiktor, John Aston, Catarina Rua, and Guy B Williams. 2019.
+<span>“Accurate Autocorrelation Modeling Substantially Improves <span class="nocase">fMRI</span> Reliability.”</span> <em>Nat. Commun.</em> 10
+(1): 1220.
+</div>
 <div id="ref-Sarica2017" class="csl-entry">
 Sarica, Alessia, Antonio Cerasa, Paola Valentino, Jason Yeatman, Maria
 Trotta, Stefania Barone, Alfredo Granata, et al. 2017. <span>“The
@@ -214,9 +339,8 @@ Corticospinal Tract Profile in Amyotrophic Lateral Sclerosis.”</span>
 </div>
 <div id="ref-VanRij2019" class="csl-entry">
 Van Rij, Jacolien, Petra Hendriks, Hedderik Van Rijn, R. Harald Baayen,
-and Simon N. Wood. 2019. <span>“Analyzing the <span>Time</span>
-<span>Course</span> of <span>Pupillometric</span>
-<span>Data</span>.”</span> <em>Trends in Hearing</em> 23 (January):
+and Simon N. Wood. 2019. <span>“Analyzing the Time Course of
+Pupillometric Data.”</span> <em>Trends in Hearing</em> 23 (January):
 1–22.
 </div>
 </div>
