@@ -21,7 +21,7 @@ the spatial autocorrelation of the errors of the model. The ideas that we use cl
 
 As an example of this approach, we will use data from the Sarica dataset [@Sarica2017] to demonstrate how to include an autocorrelation term in the GAM, and its impact on model statistics.  We start by loading the `tractable` library, as well as the [itsadug](https://www.rdocumentation.org/packages/itsadug/versions/2.4.1/topics/itsadug) and [gratia](https://gavinsimpson.github.io/gratia/) libraries, which both provide functionality to assess GAMs fit by `mgcv` (our workhorse for GAM fitting).
 
-```{r setup}
+```{r setup, echo = FALSE}
 library(tractable)
 library(itsadug)
 library(gratia)
@@ -69,7 +69,7 @@ In addition, we see that there is a statistically significant effect of group
 
 In this model, no steps were taken to account for autocorrelated residuals. We will use a few model diagnostics to evaluate the model. First, we will use the `gratia::appraise` function, which presents a few different visuals about the model: 
 
-```{r appraise_cst_no_autocor, fig.height = 8, fig.width = 8}
+```{r appraise_cst_no_autocor, fig.align = "center", fig.width = 7.25, fig.height = 7.25}
 appraise(cst_fit_no_autocor)
 ```
 
@@ -78,7 +78,7 @@ The top left plot is a QQ plot, it shows the residuals as a function of their qu
 
 Another diagnostic plot that is going to be crucial as a diagnostic is the plot of the autocorrelation function of the residuals. A plot of this sort is provided by the `itsadug` library: 
 
-```{r plot_acf_residuals_no_autocor, fig.height = 6, fig.width = 6}
+```{r plot_acf_residuals_no_autocor,  fig.align = "center", fig.width = 7.25, fig.height = 4}
 acf_resid(cst_fit_no_autocor)
 ```
 
@@ -101,8 +101,8 @@ The AR1 model takes a parameter $\rho$ to estimate autocorrelation effects. We
 can pass our initial model into the function `itsadug::start_value_rho` to 
 automatically determine the value of $\rho$. 
 
-```{r estimate_rho, fig.height = 6, fig.width = 6}
-rho_1 <- start_value_rho(cst_fit_no_autocor, plot = TRUE)
+```{r estimate_rho, fig.align = "center", fig.width = 7.25, fig.height = 4}
+rho_1 <- start_value_rho(cst_fit_no_autocor)
 rho_1
 ```
 
@@ -124,18 +124,18 @@ cst_summary
 
 Examining the summary of the resulting GAM fit object shows us that the inclusion
 of the AR1 model changes the resulting statistics of our model. Although there 
-is still a statistically significant effect of group (p = `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`), the value of the t-statistic on this term has changed from`r cst_no_autocor_summary$p.table["groupCTRL", "t value"]` to `r cst_summary$p.table["groupCTRL", "t value"]`, suggesting that the model has become substantially more conservative.
+is still a statistically significant effect of group (p = `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`), the value of the t-statistic on this term has changed from `r cst_no_autocor_summary$p.table["groupCTRL", "t value"]` to `r cst_summary$p.table["groupCTRL", "t value"]`, suggesting that the model has become substantially more conservative.
 
 Here as well, we can appraise the model with gratia:
 
-```{r appraise_fit_cst, fig.height = 8, fig.width = 8}
+```{r appraise_fit_cst, fig.align = "center", fig.width = 7.25, fig.height = 7.25}
 appraise(cst_fit)
 ```
 
 Notice some improvements to model characteristics: the residuals are more centered around zero and the QQ plot is somewhat improved. There is some residual structure in the scatter plot of residuals as a function of prediction. We can ask how bad this structure is in terms of the residual autocorrelation: 
 
-```{r plot_acf_with_autocor, fig.height = 6, fig.width = 6}
-rho_2 <- acf_resid(cst_fit)
+```{r plot_acf_with_autocor, fig.align = "center", fig.width = 7.25, fig.height = 4}
+rho_2 <- acf_resid(cst_fit)["2"] # at lag 2
 rho_2
 ```
 

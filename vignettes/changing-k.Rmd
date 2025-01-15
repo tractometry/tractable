@@ -13,6 +13,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+options(scipen = 1, digits = 4) # set to four decimal 
 ```
 
 This vignette demonstrates how a GAM model changes with increased flexibility.
@@ -33,14 +34,14 @@ Importantly, both the group ("ALS" or "CTRL") and the
 subject identifier ("subjectID") need to be factors for subsequent analysis
 to work properly.
 
-```{r}
+```{r load_data}
 df_sarica <- read_afq_sarica(na_omit = TRUE) 
 df_sarica
 ```
 
 We fit models with different levels of flexibility, encoded in different values of `k`:
 
-```{r}
+```{r k_models}
 k_values <- c(4, 8, 16, 32)
 
 models <- list()
@@ -58,7 +59,7 @@ for (i in 1:length(k_values)){
 
 And we plot the smooths, divided by group for each one of these levels:
 
-```{r}
+```{r plot_k, fig.align = "center", fig.width = 7.25, fig.height = 4}
 plots <- list()
 for (i in 1:length(k_values)){
   plots[[i]] <- models[[i]] %>%
@@ -71,9 +72,10 @@ for (i in 1:length(k_values)){
     geom_ribbon(color = NA, alpha = 0.35) + 
     geom_line(linewidth = 1) +
     scale_y_continuous(name = "FA") +
-    ggtitle(sprintf("k = %d", k_values[1])) + 
+    ggtitle(sprintf("k = %d", k_values[i])) + 
     theme_bw()
 }
+names(plots) <- sprintf("k = %d", k_values)
 
 plots
 ```
