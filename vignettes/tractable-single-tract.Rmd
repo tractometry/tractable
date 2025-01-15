@@ -13,6 +13,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+options(scipen = 1, digits = 4) # set to four decimal 
 ```
 
 This vignette demonstrates the use of GAMs for statistical analysis of
@@ -51,11 +52,11 @@ plot_handles <- plot_tract_profiles(
 )
 ```
 
-```{r plot_fa, fig.width = 8, fig.height = 6}
+```{r plot_fa, fig.align = "center", fig.width = 7.25, fig.height = 4}
 plot_handles$fa
 ```
 
-```{r plot_md, fig.width = 8, fig.height = 6}
+```{r plot_md, fig.align = "center", fig.width = 7.25, fig.height = 4}
 plot_handles$md
 ```
 
@@ -85,7 +86,7 @@ cst_summary <- summary(cst_fit)
 cst_summary
 ```
 
-Examining the summary of the resulting GAM fit object shows us that the `k=16`
+Examining the summary of the resulting GAM fit object shows us that the `k = 16`
 is sufficiently large to describe the spatial variation of tract profile data.
 In addition, we see that there is a statistically significant effect of group
 (with a p-value of `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`) and no statistically significant effect of age

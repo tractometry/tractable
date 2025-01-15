@@ -17,12 +17,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Adam Richie-Halford \email{richiehalford@gmail.com} (\href{https://orcid.org/0000-0001-9276-9084}{ORCID})
+\strong{Maintainer}: Kelly Chang \email{kchang4@uw.edu} (\href{https://orcid.org/0000-0001-5385-2782}{ORCID})
 
 Authors:
 \itemize{
-  \item Kelly Chang \email{kchang4@uw.edu} (\href{https://orcid.org/0000-0001-5385-2782}{ORCID})
-  \item Teresa Gomez \email{tmgomez@uw.edu} (\href{https://orcid.org/XXX}{ORCID})
+  \item Adam Richie-Halford \email{richiehalford@gmail.com} (\href{https://orcid.org/0000-0001-9276-9084}{ORCID})
+  \item Teresa Gomez \email{tmgomez@uw.edu}
   \item McKenzie Hagen \email{mphagen@uw.edu} (\href{https://orcid.org/0000-0002-7454-8189}{ORCID})
   \item Ethan Roy \email{ethanroy395@gmail.com} (\href{https://orcid.org/0000-0002-4956-2237}{ORCID})
   \item Ariel Rokem \email{arokem@gmail.com} (\href{https://orcid.org/0000-0003-0679-1985}{ORCID})

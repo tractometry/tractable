@@ -1,44 +1,37 @@
 Package: tractable
 Title: Analyzing diffusion MRI tract profiles
-Version: 0.2.0
+Version: 0.2.1
 Authors@R:
     c(person(given = "Adam",
            family = "Richie-Halford",
            email = "richiehalford@gmail.com",
-           role = c("aut", "cre"),
+           role = "aut",
            comment = c(ORCID = "0000-0001-9276-9084")),
     person(given = "Kelly",
            family = "Chang",
            email = "kchang4@uw.edu",
-           role = c("aut"),
+           role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-5385-2782")),
     person(given = "Teresa",
            family = "Gomez",
            email = "tmgomez@uw.edu",
-           role = c("aut"),
-           comment = c(ORCID = "XXX")),
+           role = "aut"),
     person(given = "McKenzie",
            family = "Hagen",
            email = "mphagen@uw.edu",
-           role = c("aut"),
+           role = "aut",
            comment = c(ORCID = "0000-0002-7454-8189")),
     person(given = "Ethan",
            family = "Roy",
            email = "ethanroy395@gmail.com",
-           role = c("aut"),
+           role = "aut",
            comment = c(ORCID = "0000-0002-4956-2237")),
     person(given = "Ariel",
            family = "Rokem",
            email = "arokem@gmail.com",
-           role = c("aut"),
+           role = "aut",
            comment = c(ORCID = "0000-0003-0679-1985")))
-Author: Adam Richie-Halford [aut, cre],
-    Kelly Chang (aut),
-    Teresa Gomez (aut),
-    McKenzie Hagen (aut),
-    Ethan Roy (aut),
-    Ariel Rokem (aut)
-Maintainer: Adam Richie-Halford <richiehalford@gmail.com>
+Maintainer: Kelly Chang <kchang4@uw.edu>
 Description: A toolbox for analyzing diffusion MRI tract profiles.
 License: MIT + file LICENSE
 Encoding: UTF-8
