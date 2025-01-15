@@ -121,37 +121,45 @@
 }
 
 @ARTICLE{VanRij2019,
-  title = {Analyzing the {Time} {Course} of {Pupillometric} {Data}},
+  title = {Analyzing the Time Course of Pupillometric data},
   author = {Van Rij, Jacolien and Hendriks, Petra and Van Rijn, 
             Hedderik and Baayen, R. Harald and Wood, Simon N.},
-  abstract = {This article provides a tutorial for analyzing pupillometric 
-              data. Pupildilation has become increasingly popular in 
-              psychological and psycholinguistic research as a measure to 
-              trace language processing. However, there is no general consensus
-              about procedures to analyze the data, with most studies analyzing 
-              extracted features from the pupil dilation data instead of analyzing 
-              the pupil dilation trajectories directly. Recent studies have started
-              to apply nonlinear regression and other methods to analyze the pupil
-              dilation trajectories directly, utilizing all available information 
-              in the continuously measured signal. This article applies a nonlinear
-              regression analysis, generalized additive mixed modeling, and 
-              illustrates how to analyze the full-time course of the pupil dilation 
-              signal. The regression analysis is particularly suited for analyzing 
-              pupil dilation in the fields of psychological and psycholinguistic 
-              research because generalized additive mixed models can include complex 
-              nonlinear interactions for investigating the effects of properties of 
-              stimuli (e.g., formant frequency) or participants (e.g., working memory 
-              score) on the pupil dilation signal. To account for the variation due to 
-              participants and items, nonlinear random effects can be included. However, 
-              one of the challenges for analyzing time series data is dealing with the 
-              autocorrelation in the residuals, which is rather extreme for the pupillary 
-              signal. On the basis of simulations, we explain potential causes of this 
-              extreme autocorrelation, and on the basis of the experimental data, we
-              show how to reduce their adverse effects, allowing a much more coherent
-              interpretation of pupillary data than possible with feature-based techniques.},
   journal = "Trends in Hearing",
   volume = 23,
   pages = 1-22,
   month = jan,
   year = 2019,
+}
+
+
+@ARTICLE{Olszowy2019-ge,
+  title     = "Accurate autocorrelation modeling substantially improves {fMRI}
+               reliability",
+  author    = "Olszowy, Wiktor and Aston, John and Rua, Catarina and Williams,
+               Guy B",
+  journal   = "Nat. Commun.",
+  publisher = "Springer Science and Business Media LLC",
+  volume    =  10,
+  number    =  1,
+  pages     =  1220,
+  abstract  = "Given the recent controversies in some neuroimaging statistical
+               methods, we compare the most frequently used functional Magnetic
+               Resonance Imaging (fMRI) analysis packages: AFNI, FSL and SPM,
+               with regard to temporal autocorrelation modeling. This process,
+               sometimes known as pre-whitening, is conducted in virtually all
+               task fMRI studies. Here, we employ eleven datasets containing 980
+               scans corresponding to different fMRI protocols and subject
+               populations. We found that autocorrelation modeling in AFNI,
+               although imperfect, performed much better than the
+               autocorrelation modeling of FSL and SPM. The presence of residual
+               autocorrelated noise in FSL and SPM leads to heavily confounded
+               first level results, particularly for low-frequency experimental
+               designs. SPM's alternative pre-whitening method, FAST, performed
+               better than SPM's default. The reliability of task fMRI studies
+               could be improved with more accurate autocorrelation modeling. We
+               recommend that fMRI analysis packages provide diagnostic plots to
+               make users aware of any pre-whitening problems.",
+  month     =  dec,
+  year      =  2019,
+  language  = "en"
 }

@@ -13,17 +13,18 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+options(scipen = 1, digits = 4) #set to two decimal 
 ```
 
-This vignette demonstrates the use of an AR1 model within a GAM to account for
-autocorrelation of the error terms of the model. We will use data from the
-Sarica dataset [@Sarica2017] to demonstrate the how to include an autocorrelation term and its impact on the model statistics. 
+This vignette demonstrates the use of an AR1 model within the GAM to account for
+the spatial autocorrelation of the errors of the model. The ideas that we use closely follow the work of Van Rij and colleagues [@VanRij2019]. While their work used data that is different in many respects from our data (time-series of eye pupil size in psycholingustic experiments), there are also some similarities to the tract profile data that we are analyzing in `tractable`. For example, the signals tend to change slowly over time in their analysis, and tend to change rather slowly in space in our analysis. In both cases, this means that the models fail to capture some characteristics of the data, and that some inferences from the GAM models tend to be anti-conservative, unless a mitigation strategy and careful model checking are implemented. In particular, in both cases, the residuals of the model may exhibit substantial auto-correlation. They may also end up being centered not on zero. It is always worth checking the underlying assumption of normally-distributed residuals by plotting a so-called QQ plot. Finally, we can use formal model comparison methods to adjudicate between alternative models.
 
-We start by loading the `tractable` library:
+As an example of this approach, we will use data from the Sarica dataset [@Sarica2017] to demonstrate how to include an autocorrelation term in the GAM, and its impact on model statistics.  We start by loading the `tractable` library, as well as the [itsadug](https://www.rdocumentation.org/packages/itsadug/versions/2.4.1/topics/itsadug) and [gratia](https://gavinsimpson.github.io/gratia/) libraries, which both provide functionality to assess GAMs fit by `mgcv` (our workhorse for GAM fitting).
 
 ```{r setup}
 library(tractable)
 library(itsadug)
+library(gratia)
 ```
 
 Next, we will use a function that is included in `tractable` to read this dataset directly into memory. 
@@ -35,11 +36,15 @@ df_sarica <- read_afq_sarica(na_omit = TRUE)
 df_sarica
 ```
 
-We will first fit a GAM model without any autocorrelation structure using the 
-`tractable_single_tract` function. This model will use "age" and "group" to 
-predict FA, while smoothing over the tract nodes. We will also use the automated
-procedure implemented in  `tractable_single_tract` to determine the ideal value
-for `k`, a parameter used to determine the number of spline functions. The default behavior for `tractable_single_tract` is to include the AR1 model. To avoid this, we set the parameter `autocor` to `FALSE`. 
+We will first fit a GAM model that does not account for autocorrelation structure 
+in the residuals using the `tractable_single_tract` function. This model will use 
+"group" and "age" to account for the measured FA, while smoothing over the tract 
+nodes. We will  also use the automated procedure implemented in 
+`tractable_single_tract` to  determine the ideal value for `k`, a parameter used 
+to determine the number of  spline functions. The default behavior for 
+`tractable_single_tract` is to include  an AR1 model to account for 
+autocorrelations, as we will see below. But for now, to avoid this, we first set 
+the parameter `autocor` to `FALSE`. 
 
 
 ```{r fit_no_autocor_model}
@@ -49,7 +54,7 @@ cst_fit_no_autocor <- tractable_single_tract(
   target     = "fa",
   regressors = c("age", "group"),
   node_group = "group",
-  k          = "auto",
+  node_k     = 16,
   autocor    = FALSE
 )
 
@@ -57,49 +62,93 @@ cst_no_autocor_summary <- summary(cst_fit_no_autocor)
 cst_no_autocor_summary
 ```
 
-Examining the summary of the resulting GAM fit object shows us that the `k=16`
+Examining the summary of the resulting GAM fit object shows us that the `k = 16`
 is sufficiently large to describe the spatial variation of tract profile data.
 In addition, we see that there is a statistically significant effect of group
-(with a p-value of `r cst_no_autocor_summary$p.table["groupCTRL", "Pr(>|t|)"]`) and no statistically significant effect of age
-(p = `r cst_no_autocor_summary$p.table["age", "Pr(>|t|)"]`).
+(with a p-value of `r cst_no_autocor_summary$p.table["groupCTRL", "Pr(>|t|)"]`) and no statistically significant effect of age (p = `r cst_no_autocor_summary$p.table["age", "Pr(>|t|)"]`).
+
+In this model, no steps were taken to account for autocorrelated residuals. We will use a few model diagnostics to evaluate the model. First, we will use the `gratia::appraise` function, which presents a few different visuals about the model: 
+
+```{r appraise_cst_no_autocor, fig.height = 8, fig.width = 8}
+appraise(cst_fit_no_autocor)
+```
+
+
+The top left plot is a QQ plot, it shows the residuals as a function of their quantile. In a perfect world (or at least a world in which model assumptions are valid), these points should fall along the equality line. This plot is not terrible, but there are some deviations. Another plot to look at is the plot of the residuals as a function of the prediction. Here, we look both at the overall location and shape of the point cloud, as well as for any signs of clear structure. In this case, we see some signs of trouble: the whole cloud is shifted away from zero, and there are what appear as trails of points, suggesting that some points form patterns. The first of these issues is also apparent in the bottom left, where residuals are not zero centerd in the histogram of model residuals. 
+
+Another diagnostic plot that is going to be crucial as a diagnostic is the plot of the autocorrelation function of the residuals. A plot of this sort is provided by the `itsadug` library: 
+
+```{r plot_acf_residuals_no_autocor, fig.height = 6, fig.width = 6}
+acf_resid(cst_fit_no_autocor)
+```
+
+The dashed blue lines indicate the 95% confidence interval for the auto-correlation 
+function of white noise. Here, we see that the auto-correlation at many of the lags 
+(and particularly in the immediate neighbor, lag-1) is substantially larger than 
+would be expected for a function with no autocorrelations.  These autocorrelations 
+pose a danger to inference not only because of  mis-specification of the model, but 
+also because we are going to under-estimate the  standard error of the model in 
+this setting and this will result in false  positives (this is what Van Rij et al. 
+elegantly refer to as "anti-conservative"  models)
 
 To account for potential spatial autocorrelation of FA values along the length 
-of the tract profile, we can incorporate a AR1 model into our GAM. Briefly, this
-AR1 model is a linear model that estimates the amount of influence of the FA value of the preceding node on the FA value of the current node (see [@VanRij2019](https://journals.sagepub.com/doi/pdf/10.1177/2331216519832483) for an overview of accounting for autocorrelation using the `mgcv` package). 
+of the tract profile, we can incorporate an AR1 model into our GAM. Briefly, the
+AR1 model is a linear model that estimates and accounts for the amount of influence 
+of the model residual FA value of each node on the residual FA value of 
+their neighbor node. This is somewhat akin to "pre-whitening" that fMRI researchers undertake, to account for temporal auto-correlations in the time-series measured with fMRI (see e.g. [@Olszowy2019-ge]). 
 
 The AR1 model takes a parameter $\rho$ to estimate autocorrelation effects. We 
 can pass our initial model into the function `itsadug::start_value_rho` to 
-automatically determine the value of $\rho$. We can also plot the autocorrelation by setting `plot = TRUE` within that function (pictured below). 
+automatically determine the value of $\rho$. 
 
-```{r calculate_rho}
-rho <- start_value_rho(cst_fit_no_autocor)
-start_value_rho(cst_fit_no_autocor, plot = TRUE)
+```{r estimate_rho, fig.height = 6, fig.width = 6}
+rho_1 <- start_value_rho(cst_fit_no_autocor, plot = TRUE)
+rho_1
 ```
 
-By default, the `tractable_single_tract` function will determine the value of 
-$\rho$ and incorporate the AR1 model into the GAM estimation. 
+By default, the `tractable_single_tract` function empirically determines the value of $\rho$ based on the data and uses it to incorporate the AR1 model of the residuals into the GAM estimation. 
 
-```{r fit_autocor_model}
+```{r fit_model_with_autocor}
 cst_fit <- tractable_single_tract(
   df         = df_sarica,
   tract      = "Right Corticospinal",
   target     = "fa",
   regressors = c("age", "group"),
   node_group = "group",
-  k          = "auto"
+  node_k     = 16
 )
 
 cst_summary <- summary(cst_fit)
 cst_summary
 ```
 
-Examining the summary of the resulting GAM fit object shows us that the inclusion of the AR1 model changes the resulting statistics of our model. Although there  is still a statistically significant effect of group (p = `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`), the value of the t-statistic on this term has changed from `r cst_no_autocor_summary$p.table["groupCTRL", "t value"]` to `r cst_summary$p.table["groupCTRL", "t value"]`. 
+Examining the summary of the resulting GAM fit object shows us that the inclusion
+of the AR1 model changes the resulting statistics of our model. Although there 
+is still a statistically significant effect of group (p = `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`), the value of the t-statistic on this term has changed from`r cst_no_autocor_summary$p.table["groupCTRL", "t value"]` to `r cst_summary$p.table["groupCTRL", "t value"]`, suggesting that the model has become substantially more conservative.
 
-You can also examine the AR1 model residuals for autocorrelations with the `itsadug::acf_resid` function. 
+Here as well, we can appraise the model with gratia:
 
-```{r plot_corrected_acf}
-acf_resid(cst_fit)
+```{r appraise_fit_cst, fig.height = 8, fig.width = 8}
+appraise(cst_fit)
 ```
 
+Notice some improvements to model characteristics: the residuals are more centered around zero and the QQ plot is somewhat improved. There is some residual structure in the scatter plot of residuals as a function of prediction. We can ask how bad this structure is in terms of the residual autocorrelation: 
+
+```{r plot_acf_with_autocor, fig.height = 6, fig.width = 6}
+rho_2 <- acf_resid(cst_fit)
+rho_2
+```
+
+This shows that the lag-1 autocorrelation has been reduced from approximately `r rho_1` to approximately `r rho_2`. 
+
+Finally, formal model comparison can tell us which of these models better fit the 
+data. Using the `itsadug` library this can be done using the Akaike Information 
+Criterion as a comparator. In this case, this also indicates that the model that 
+accounts for autocorrelations also has smaller residuals considering the number of 
+parameters, suggesting that it is overall a better model of the data.
+
+```{r compare_models}
+compareML(cst_fit_no_autocor, cst_fit)
+```
 
 ## References
