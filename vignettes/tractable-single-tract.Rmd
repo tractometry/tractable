@@ -86,7 +86,7 @@ cst_summary <- summary(cst_fit)
 cst_summary
 ```
 
-Examining the summary of the resulting GAM fit object shows us that the `k = 16`
+Examining the summary of the resulting GAM fit object shows us that the `k = 9`
 is sufficiently large to describe the spatial variation of tract profile data.
 In addition, we see that there is a statistically significant effect of group
 (with a p-value of `r cst_summary$p.table["groupCTRL", "Pr(>|t|)"]`) and no statistically significant effect of age
