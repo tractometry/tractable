@@ -1,11 +1,12 @@
+
 #' Shuffle an AFQ dataframe
 #'
 #' @description
-#' This function shuffles participants' demographic information (i.e., age, 
-#' group, sex), thereby destroying correlations between participants' tract 
+#' This function shuffles participants' demographic information (i.e., age,
+#' group, sex), thereby destroying correlations between participants' tract
 #' profiles and phenotypic data.
 #'
-#' @param df              The input dataframe. 
+#' @param df              The input dataframe.
 #' @param target          The column name that encodes the metric to model.
 #' @param shuffle_cols    Column names that should be shuffled.
 #' @param node_col        The column name that encodes tract node positions.
@@ -16,8 +17,8 @@
 #'                        Default: "tractID"
 #' @param participant_col The column name that encodes participant ID.
 #'                        Default: "subjectID".
-#' @param sample_uniform  Boolean flag. If TRUE, shuffling should sample 
-#'                        uniformly from the unique values in the columns. If 
+#' @param sample_uniform  Boolean flag. If TRUE, shuffling should sample
+#'                        uniformly from the unique values in the columns. If
 #'                        FALSE, shuffling will shuffle without replacement.
 #'
 #' @return A shuffled AFQ dataframe
@@ -31,14 +32,14 @@ shuffle_df <- function(
   df,
   target,
   shuffle_cols    = NULL,
-  node_col        = "nodeID", 
+  node_col        = "nodeID",
   node_group      = NULL,
-  tract_col       = "tractID", 
+  tract_col       = "tractID",
   participant_col = "subjectID",
   sample_uniform  = FALSE
 ) {
-  # argument input control 
-  stopifnot("`df` must be a class data.frame or tibble" = 
+  # argument input control
+  stopifnot("`df` must be a class data.frame or tibble" =
     any(class(df) %in% c("data.frame", "tbl_df")))
   stopifnot("`target` must be a character" = is.character(target))
   if (!is.null(shuffle_cols)) {
@@ -52,11 +53,18 @@ shuffle_df <- function(
   stopifnot("`participant_col` must be a character" = is.character(participant_col))
   stopifnot("`sample_uniform` must be a logical" = is.logical(sample_uniform))
 
-  # pivot data frame to one row per participant
-  df_wide <- tidyr::pivot_wider(
-    data        = df,
-    names_from  = tidyselect::all_of(node_col),
-    values_from = tidyselect::all_of(target)
+  # Get option whether to use package `collapse`:
+  use_collapse <- as.logical(getOption("tractable.use_collapse", default = FALSE))
+  if(use_collapse) use_collapse <- rlang::is_installed("collapse")
+  # Get option to control pivot row ordering for `tidyr::pivot_wider` (mostly for testing against `collapse`):
+  pivot_names_vary <- match.arg(
+    getOption("tractable.pivot_names_vary", default = "fastest"),
+    c("fastest", "slowest")
+  )
+  # Get option to control pivot row ordering for `tidyr::pivot_longer` (mostly for testing against `collapse`):
+  pivot_cols_vary <- match.arg(
+    getOption("tractable.pivot_cols_vary", default = "fastest"),
+    c("fastest", "slowest")
   )
 
   # if not given, determine shuffle columns
@@ -66,30 +74,72 @@ shuffle_df <- function(
     shuffle_cols <- original_colnames[!original_colnames %in% static_cols]
   }
 
-  # shuffle participants' shuffle_cols and the grouping variable
-  for (svar in unique(c(shuffle_cols, node_group))) {
-    x <- df_wide[[svar]] # current values to shuffle
-    if (sample_uniform) {
-      # sample uniformly from the unique values (with replacement)
-      df_wide[[svar]] <- sample(unique(x), length(x), replace = TRUE)
-    } else {
-      # sample and shuffle the existing values
-      df_wide[[svar]] <- sample(x, length(x))
+  # pivot data frame to one row per participant
+  if (!use_collapse) {
+    df_wide <- tidyr::pivot_wider(
+      data        = df,
+      names_from  = tidyselect::all_of(node_col),
+      values_from = tidyselect::all_of(target)
+    )
+
+    # shuffle participants' shuffle_cols and the grouping variable
+    for (svar in unique(c(shuffle_cols, node_group))) {
+      x <- df_wide[[svar]] # current values to shuffle
+      if (sample_uniform) {
+        # sample uniformly from the unique values (with replacement)
+        df_wide[[svar]] <- sample(unique(x), length(x), replace = TRUE)
+      } else {
+        # sample and shuffle the existing values
+        df_wide[[svar]] <- sample(x, length(x))
+      }
     }
-  }
 
-  # return to long format (one row per node)
-  df_shuffled <- tidyr::pivot_longer(
-    data      = df_wide,
-    cols      = tidyselect::all_of(as.character(unique(df[[node_col]]))),
-    names_to  = node_col, 
-    values_to = target
-  ) %>% 
-    dplyr::select(tidyselect::all_of(original_colnames)) 
+    # return to long format (one row per node)
+    df_shuffled <- tidyr::pivot_longer(
+      data      = df_wide,
+      cols      = tidyselect::all_of(as.character(unique(df[[node_col]]))),
+      names_to  = node_col,
+      values_to = target
+    ) %>%
+      dplyr::select(tidyselect::all_of(original_colnames))
 
-  # format column class to match original
-  for (var in original_colnames) {
-    class(df_shuffled[[var]]) <- class(df[[var]])
+    # format column class to match original
+    for (var in original_colnames) {
+      class(df_shuffled[[var]]) <- class(df[[var]])
+    }
+
+    # set names attribute to match orignal:
+    names(df_shuffled[[node_col]]) <- names(df[[node_col]])
+  } else {
+    df_wide <- collapse::pivot(df,
+      how = "wider",
+      names = node_col,
+      values = target
+    )
+
+    # set function to sample depending on whether to do it uniformly or not:
+    f <- if (sample_uniform) {
+      \(x) {
+        sample(collapse::funique(x), length(x), replace = TRUE)
+      }
+    } else {
+      \(x) {
+        sample(x, length(x))
+      }
+    }
+
+    # shuffle participants' shuffle_cols and the grouping variable:
+    collapse::settransformv(df_wide, vars = unique(c(shuffle_cols, node_group)), FUN = f)
+    # return to long format (one row per node)
+    df_shuffled <- collapse::pivot(data = df_wide, values = as.character(collapse::funique(df[[node_col]]))) |> collapse::colorderv(original_colnames)
+
+    # Cast `node_col` back from factor to original type if it wasn't a factor:
+    if (!is.factor(df[[node_col]])) {
+      df_shuffled[[node_col]] <- .cast_as_thing.factor(df_shuffled[[node_col]], df[[node_col]], .use_collapse = TRUE)
+    }
+    # Copy original attributes back to `node_col`:
+    collapse::copyMostAttrib(df_shuffled[[node_col]], df[[node_col]])
+    names(df_shuffled[[node_col]]) <- names(df[[node_col]])
   }
 
   return(df_shuffled)
@@ -99,11 +149,11 @@ shuffle_df <- function(
 #' Bootstrap an AFQ dataframe
 #'
 #' @description
-#' This function bootstrap samples an AFQ dataframe by participant. That is, it 
-#' first pivots to wide format with one row per participant, bootstrap samples, 
+#' This function bootstrap samples an AFQ dataframe by participant. That is, it
+#' first pivots to wide format with one row per participant, bootstrap samples,
 #' and finally pivots back to long format.
 #'
-#' @param df              The input dataframe. 
+#' @param df              The input dataframe.
 #' @param target          The column name that encodes the metric to model.
 #' @param node_col        The column name that encodes tract node positions.
 #'                        Default: "nodeID"
@@ -111,7 +161,7 @@ shuffle_df <- function(
 #'                        Default: NULL.
 #' @param participant_col The column name that encodes participant ID.
 #'                        Default: "subjectID".
-#' 
+#'
 #' @return A shuffled AFQ dataframe
 #' @export
 #'
@@ -122,12 +172,12 @@ shuffle_df <- function(
 bootstrap_df <- function(
   df,
   target,
-  node_col        = "nodeID", 
+  node_col        = "nodeID",
   node_group      = "group",
   participant_col = "subjectID"
 ) {
-  # argument input control 
-  stopifnot("`df` must be a class data.frame or tibble" = 
+  # argument input control
+  stopifnot("`df` must be a class data.frame or tibble" =
     any(class(df) %in% c("data.frame", "tbl_df")))
   stopifnot("`target` must be a character" = is.character(target))
   stopifnot("`node_col` must be a character" = is.character(node_col))
@@ -136,32 +186,86 @@ bootstrap_df <- function(
   }
   stopifnot("`participant_col` must be a character" = is.character(participant_col))
 
-  # pivot data frame to one row per participant
-  df_wide <- tidyr::pivot_wider(
-    data        = df,
-    names_from  = tidyselect::all_of(node_col), 
-    values_from = tidyselect::all_of(target)
-  ) %>% 
-    dplyr::slice_sample(prop = 1, replace = TRUE)
+  # Get option whether to use package `collapse`:
+  use_collapse <- as.logical(getOption("tractable.use_collapse", default = FALSE))
+  if(use_collapse) use_collapse <- rlang::is_installed("collapse")
+
+  # Get option to control pivot row ordering for `tidyr::pivot_wider` (mostly for testing against `collapse`):
+  pivot_names_vary <- match.arg(
+    getOption("tractable.pivot_names_vary", default = "fastest"),
+    c("fastest", "slowest")
+  )
+  # Get option to control pivot row ordering for `tidyr::pivot_longer` (mostly for testing against `collapse`):
+  pivot_cols_vary <- match.arg(
+    getOption("tractable.pivot_cols_vary", default = "fastest"),
+    c("fastest", "slowest")
+  )
 
   # determine columns not used for pivoting
   original_colnames <- colnames(df)
   static_cols <- original_colnames[!original_colnames %in% c(node_col, target)]
 
-  # return to long format (one row per node)
-  df_bootstrap <- tidyr::pivot_longer(
-    data      = df_wide,
-    cols      = -tidyselect::all_of(static_cols),
-    names_to  = node_col,
-    values_to = target
-  ) %>% 
-    dplyr::select(tidyselect::all_of(original_colnames)) 
+  if (!use_collapse) {
+    # pivot data frame to one row per participant
+    df_wide <- tidyr::pivot_wider(
+      data = df,
+      names_from = tidyselect::all_of(node_col),
+      values_from = tidyselect::all_of(target),
+      names_vary = pivot_names_vary
+    ) %>%
+      dplyr::slice_sample(prop = 1, replace = TRUE)
 
-  # format column class to match original
-  for (var in original_colnames) {
-    class(df_bootstrap[[var]]) <- class(df[[var]])
+    # return to long format (one row per node)
+    df_bootstrap <- tidyr::pivot_longer(
+      data      = df_wide,
+      cols      = -tidyselect::all_of(static_cols),
+      names_to  = node_col,
+      values_to = target,
+      cols_vary =  pivot_cols_vary
+    ) %>%
+      dplyr::select(tidyselect::all_of(original_colnames))
+
+    # format column class to match original
+    for (var in original_colnames) {
+      class(df_bootstrap[[var]]) <- class(df[[var]])
+    }
+  } else {
+    # pivot data frame to one row per participant
+    df_wide <- collapse::pivot(df,
+      how = "wider",
+      names = node_col,
+      values = target
+    )
+
+    # subset df_wide randomly:
+    df_wide <- collapse::ss(
+      df_wide,
+      i = if (inherits(df, c("GRP_df", "grouped_df"))) {
+        unlist(
+          lapply(collapse::GRPN(df_wide, expand = FALSE), sample.int, replace = TRUE),
+          recursive = FALSE,
+          use.names = FALSE
+        )
+      } else {
+        sample.int(nrow(df_wide), replace = TRUE)
+      }
+    )
+
+    # return to long format (one row per node):
+    df_bootstrap <- collapse::pivot(
+      data = df_wide,
+      values = setdiff(colnames(df_wide), static_cols),
+      names = list(variable = node_col, value = target)
+    ) |> collapse::colorderv(original_colnames)
+
+    # Cast `node_col` back from factor to original type if it wasn't a factor:
+    if (!is.factor(df[[node_col]])) {
+      df_bootstrap[[node_col]] <- .cast_as_thing.factor(df_bootstrap[[node_col]], df[[node_col]], .use_collapse = TRUE)
+    }
+    # Copy original attributes back to `node_col`:
+    collapse::copyMostAttrib(df_bootstrap[[node_col]], df[[node_col]])
+    names(df_bootstrap[[node_col]]) <- names(df[[node_col]])
   }
-
   return(df_bootstrap)
 }
 
@@ -221,7 +325,7 @@ bootstrap_df <- function(
 #   n_samples,
 #   target,
 #   tract,
-#   node_col = "nodeID", 
+#   node_col = "nodeID",
 #   node_group = "group",
 #   participant_col = "subjectID",
 #   sample_uniform = FALSE,
@@ -253,7 +357,7 @@ bootstrap_df <- function(
 #         df              = df,
 #         target          = target,
 #         shuffle_cols    = covariates,
-#         node_col        = node_col, 
+#         node_col        = node_col,
 #         node_group      = node_group,
 #         participant_col = participant_col,
 #         sample_uniform  = sample_uniform
